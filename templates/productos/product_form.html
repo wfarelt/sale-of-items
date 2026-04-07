@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} producto{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_code">Código</label>
+                            {{ form.code }}
+                            <div class="text-danger small mt-1">{{ form.code.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label" for="id_name">Nombre</label>
+                            {{ form.name }}
+                            <div class="text-danger small mt-1">{{ form.name.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_price">Precio</label>
+                            {{ form.price }}
+                            <div class="text-danger small mt-1">{{ form.price.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_stock">Stock</label>
+                            {{ form.stock }}
+                            <div class="text-danger small mt-1">{{ form.stock.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_brand">Marca</label>
+                            {{ form.brand }}
+                            <div class="text-danger small mt-1">{{ form.brand.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_category">Categoria</label>
+                            {{ form.category }}
+                            <div class="text-danger small mt-1">{{ form.category.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_size">Talla</label>
+                            {{ form.size }}
+                            <div class="text-danger small mt-1">{{ form.size.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_color">Color</label>
+                            {{ form.color }}
+                            <div class="text-danger small mt-1">{{ form.color.errors|striptags }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="id_description">Descripcion</label>
+                            {{ form.description }}
+                            <div class="text-danger small mt-1">{{ form.description.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_image">Imagen</label>
+                            {% if object.image %}
+                            <div class="mb-2">
+                                <img src="{{ object.image.url }}" alt="Imagen actual" class="img-thumbnail" style="max-height:120px;">
+                            </div>
+                            {% endif %}
+                            {{ form.image }}
+                            <div class="text-danger small mt-1">{{ form.image.errors|striptags }}</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{% url 'productos:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-dark">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

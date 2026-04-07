@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 
 from clientes.models import Client
+from productos.models import Product
 from .models import Role, User
 
 
@@ -44,6 +45,8 @@ def dashboard_view(request):
                 "users_inactive": User.objects.filter(is_active=False).count(),
                 "roles_total": Role.objects.count(),
                 "clients_total": Client.objects.count(),
+                "products_total": Product.objects.count(),
+                "products_low_stock": Product.objects.filter(stock__lte=5).count(),
                 "users_by_role": Role.objects.annotate(total=Count("user")),
             }
         )
@@ -58,8 +61,8 @@ def dashboard_view(request):
     elif role == "almacen":
         context.update(
             {
-                "productos_total": 0,
-                "stock_bajo": 0,
+                "productos_total": Product.objects.count(),
+                "stock_bajo": Product.objects.filter(stock__lte=5).count(),
                 "entradas_hoy": 0,
             }
         )
