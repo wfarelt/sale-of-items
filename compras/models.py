@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from productos.models import Product
 
@@ -39,12 +40,46 @@ class Purchase(models.Model):
 
 	def apply_inventory_update(self):
 		"""Aplica incremento de stock y actualiza precio de venta en productos."""
+		from movimientos.models import InventoryMovement
+
+		movement_details = []
 		for detail in self.purchasedetail_set.select_related("product"):
 			product = detail.product
 			sale_price = detail.sale_price if detail.sale_price is not None else detail.cost_price * 1.35
 			product.stock += detail.quantity
 			product.price = sale_price
 			product.save(update_fields=["stock", "price"])
+			movement_details.append({"product": product, "quantity": detail.quantity})
+
+		InventoryMovement.create_movement(
+			movement_type=InventoryMovement.TYPE_IN,
+			reference=f"Compra #{self.pk}",
+			description=f"Ingreso por compra al proveedor {self.supplier}",
+			details=movement_details,
+		)
+
+	def revert_inventory_update(self):
+		from movimientos.models import InventoryMovement
+
+		for detail in self.purchasedetail_set.select_related("product"):
+			if detail.product.stock < detail.quantity:
+				raise ValidationError(
+					f"No se puede revertir la compra porque el producto {detail.product.name} ya no tiene stock suficiente."
+				)
+
+		movement_details = []
+		for detail in self.purchasedetail_set.select_related("product"):
+			product = detail.product
+			product.stock -= detail.quantity
+			product.save(update_fields=["stock"])
+			movement_details.append({"product": product, "quantity": detail.quantity})
+
+		InventoryMovement.create_movement(
+			movement_type=InventoryMovement.TYPE_OUT,
+			reference=f"Eliminación compra #{self.pk}",
+			description=f"Reversa de compra del proveedor {self.supplier}",
+			details=movement_details,
+		)
 
 
 class PurchaseDetail(models.Model):

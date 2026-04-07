@@ -92,9 +92,6 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
-		for detail in self.object.saledetail_set.select_related("product"):
-			product = detail.product
-			product.stock += detail.quantity
-			product.save(update_fields=["stock"])
+		self.object.restore_inventory_output()
 		messages.warning(request, "Venta eliminada y stock restaurado.")
 		return super().post(request, *args, **kwargs)

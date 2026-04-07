@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
@@ -135,6 +136,16 @@ class PurchaseDeleteView(InventoryAccessMixin, DeleteView):
 	template_name = "compras/purchase_confirm_delete.html"
 	success_url = reverse_lazy("compras:list")
 
-	def delete(self, request, *args, **kwargs):
-		messages.warning(request, "Compra eliminada.")
-		return super().delete(request, *args, **kwargs)
+	@transaction.atomic
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		if self.object.status == "recibida":
+			try:
+				self.object.revert_inventory_update()
+			except ValidationError as exc:
+				messages.error(request, str(exc))
+				return redirect(self.success_url)
+			messages.warning(request, "Compra eliminada y stock revertido.")
+		else:
+			messages.warning(request, "Compra eliminada.")
+		return super().post(request, *args, **kwargs)

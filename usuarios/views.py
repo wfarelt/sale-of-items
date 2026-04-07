@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 
 from clientes.models import Client
+from movimientos.models import InventoryMovement
 from productos.models import Product
 from compras.models import Purchase
 from ventas.models import Sale
@@ -57,6 +58,7 @@ def dashboard_view(request):
 				"purchases_total_value": Purchase.objects.filter(status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
 				"sales_total": Sale.objects.count(),
 				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
+				"movements_total": InventoryMovement.objects.count(),
 				"users_by_role": Role.objects.annotate(total=Count("user")),
 			}
 		)
@@ -72,12 +74,15 @@ def dashboard_view(request):
 			}
 		)
 	elif role == "almacen":
+		now = timezone.localtime()
 		context.update(
 			{
 				"productos_total": Product.objects.count(),
 				"stock_bajo": Product.objects.filter(stock__lte=5).count(),
 				"purchases_total": Purchase.objects.count(),
 				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
+				"movements_total": InventoryMovement.objects.count(),
+				"entradas_hoy": InventoryMovement.objects.filter(type="IN", date__date=now.date()).count(),
 			}
 		)
 

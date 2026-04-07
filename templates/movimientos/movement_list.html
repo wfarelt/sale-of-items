@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimientos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-0">Movimientos de inventario</h1>
+        <p class="text-muted mb-0">Auditoría e historial de entradas y salidas</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Producto, código, referencia o descripción">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Tipo</label>
+                <select name="type" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="IN" {% if selected_type == 'IN' %}selected{% endif %}>Entrada</option>
+                    <option value="OUT" {% if selected_type == 'OUT' %}selected{% endif %}>Salida</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Producto</label>
+                <select name="product" class="form-select">
+                    <option value="">Todos</option>
+                    {% for product in products %}
+                    <option value="{{ product.pk }}" {% if selected_product == product.pk|stringformat:'s' %}selected{% endif %}>{{ product.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-dark"><i class="fas fa-filter me-1"></i> Filtrar</button>
+                <a href="{% url 'movimientos:list' %}" class="btn btn-outline-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>N° Movimiento</th>
+                    <th>Tipo</th>
+                    <th>Referencia</th>
+                    <th>Descripción</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movement in movements %}
+                <tr>
+                    <td><span class="badge text-bg-secondary font-monospace">{{ movement.id }}</span></td>
+                    <td>
+                        {% if movement.type == 'IN' %}
+                            <span class="badge text-bg-success">Entrada</span>
+                        {% else %}
+                            <span class="badge text-bg-danger">Salida</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ movement.reference }}</td>
+                    <td>{{ movement.description|default:'-' }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'movimientos:detail' movement.pk %}" class="btn btn-sm btn-outline-dark">
+                            <i class="fas fa-eye me-1"></i> Ver detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">No hay movimientos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3" aria-label="Paginacion de movimientos">
+    <ul class="pagination justify-content-center mb-0">
+        {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}">Primera</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}">Anterior</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Primera</span></li>
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+        {% endif %}
+
+        <li class="page-item active"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+        {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}">Siguiente</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_product %}&product={{ selected_product }}{% endif %}">Última</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+            <li class="page-item disabled"><span class="page-link">Última</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

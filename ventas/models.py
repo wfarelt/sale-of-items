@@ -34,12 +34,42 @@ class Sale(models.Model):
 		return total
 
 	def apply_inventory_output(self):
+		from movimientos.models import InventoryMovement
+
+		for detail in self.saledetail_set.select_related("product"):
+			if detail.product.stock < detail.quantity:
+				raise ValidationError(f"Stock insuficiente para {detail.product.name}.")
+
+		movement_details = []
 		for detail in self.saledetail_set.select_related("product"):
 			product = detail.product
-			if product.stock < detail.quantity:
-				raise ValidationError(f"Stock insuficiente para {product.name}.")
 			product.stock -= detail.quantity
 			product.save(update_fields=["stock"])
+			movement_details.append({"product": product, "quantity": detail.quantity})
+
+		InventoryMovement.create_movement(
+			movement_type=InventoryMovement.TYPE_OUT,
+			reference=f"Venta #{self.pk}",
+			description=f"Salida por venta al cliente {self.client.name}",
+			details=movement_details,
+		)
+
+	def restore_inventory_output(self):
+		from movimientos.models import InventoryMovement
+
+		movement_details = []
+		for detail in self.saledetail_set.select_related("product"):
+			product = detail.product
+			product.stock += detail.quantity
+			product.save(update_fields=["stock"])
+			movement_details.append({"product": product, "quantity": detail.quantity})
+
+		InventoryMovement.create_movement(
+			movement_type=InventoryMovement.TYPE_IN,
+			reference=f"Eliminación venta #{self.pk}",
+			description=f"Reversa de venta del cliente {self.client.name}",
+			details=movement_details,
+		)
 
 
 class SaleDetail(models.Model):
