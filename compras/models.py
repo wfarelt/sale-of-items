@@ -1,0 +1,68 @@
+from django.db import models
+from productos.models import Product
+
+
+class Purchase(models.Model):
+	STATUS_CHOICES = (
+		("pendiente", "Pendiente"),
+		("recibida", "Recibida"),
+		("cancelada", "Cancelada"),
+	)
+
+	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
+	supplier = models.CharField(max_length=200, verbose_name="Proveedor")
+	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
+	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendiente", verbose_name="Estado")
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		ordering = ["-date"]
+		verbose_name = "Compra"
+		verbose_name_plural = "Compras"
+
+	def __str__(self):
+		return f"Compra #{self.pk} - {self.supplier} - {self.date.strftime('%d/%m/%Y')}"
+
+	def calculate_total(self):
+		"""Calcula el total basado en los detalles de la compra"""
+		total = sum(
+			detail.quantity * detail.cost_price
+			for detail in self.purchasedetail_set.all()
+		)
+		self.total = total
+		self.save(update_fields=["total"])
+		return total
+
+	def is_editable(self):
+		return self.status == "pendiente"
+
+	def apply_inventory_update(self):
+		"""Aplica incremento de stock y actualiza precio de venta en productos."""
+		for detail in self.purchasedetail_set.select_related("product"):
+			product = detail.product
+			sale_price = detail.sale_price if detail.sale_price is not None else detail.cost_price * 1.35
+			product.stock += detail.quantity
+			product.price = sale_price
+			product.save(update_fields=["stock", "price"])
+
+
+class PurchaseDetail(models.Model):
+	purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, verbose_name="Compra")
+	product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="Producto")
+	quantity = models.PositiveIntegerField(verbose_name="Cantidad")
+	cost_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio unitario")
+	sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio de venta")
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["purchase"]
+		verbose_name = "Detalle de compra"
+		verbose_name_plural = "Detalles de compra"
+		unique_together = ("purchase", "product")
+
+	def __str__(self):
+		return f"{self.product.name} x {self.quantity} - Compra #{self.purchase.pk}"
+
+	def subtotal(self):
+		return self.quantity * self.cost_price

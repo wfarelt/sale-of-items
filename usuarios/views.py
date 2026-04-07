@@ -2,12 +2,15 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.utils import timezone
 
 from clientes.models import Client
 from productos.models import Product
+from compras.models import Purchase
+from ventas.models import Sale
 from .models import Role, User
 
 
@@ -32,39 +35,50 @@ class PasswordChangeDoneView(auth_views.PasswordChangeDoneView):
 
 @login_required
 def dashboard_view(request):
-    user = request.user
-    role = user.role.name
+	user = request.user
+	role = user.role.name
 
-    context = {"page_title": "Dashboard"}
+	context = {"page_title": "Dashboard"}
 
-    if role == "admin":
-        context.update(
-            {
-                "users_total": User.objects.count(),
-                "users_active": User.objects.filter(is_active=True).count(),
-                "users_inactive": User.objects.filter(is_active=False).count(),
-                "roles_total": Role.objects.count(),
-                "clients_total": Client.objects.count(),
-                "products_total": Product.objects.count(),
-                "products_low_stock": Product.objects.filter(stock__lte=5).count(),
-                "users_by_role": Role.objects.annotate(total=Count("user")),
-            }
-        )
-    elif role == "vendedor":
-        context.update(
-            {
-                "ventas_hoy": 0,
-                "ventas_mes": 0,
-                "clientes_total": Client.objects.count(),
-            }
-        )
-    elif role == "almacen":
-        context.update(
-            {
-                "productos_total": Product.objects.count(),
-                "stock_bajo": Product.objects.filter(stock__lte=5).count(),
-                "entradas_hoy": 0,
-            }
-        )
+	if role == "admin":
+		now = timezone.localtime()
+		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+		context.update(
+			{
+				"users_total": User.objects.count(),
+				"users_active": User.objects.filter(is_active=True).count(),
+				"users_inactive": User.objects.filter(is_active=False).count(),
+				"roles_total": Role.objects.count(),
+				"clients_total": Client.objects.count(),
+				"products_total": Product.objects.count(),
+				"products_low_stock": Product.objects.filter(stock__lte=5).count(),
+				"purchases_total": Purchase.objects.count(),
+				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
+				"purchases_total_value": Purchase.objects.filter(status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
+				"sales_total": Sale.objects.count(),
+				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
+				"users_by_role": Role.objects.annotate(total=Count("user")),
+			}
+		)
+	elif role == "vendedor":
+		now = timezone.localtime()
+		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+		context.update(
+			{
+				"ventas_hoy": Sale.objects.filter(date__date=now.date()).count(),
+				"ventas_mes": Sale.objects.filter(date__gte=month_start).count(),
+				"ultimas_ventas": Sale.objects.select_related("client").all()[:5],
+				"clientes_total": Client.objects.count(),
+			}
+		)
+	elif role == "almacen":
+		context.update(
+			{
+				"productos_total": Product.objects.count(),
+				"stock_bajo": Product.objects.filter(stock__lte=5).count(),
+				"purchases_total": Purchase.objects.count(),
+				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
+			}
+		)
 
-    return render(request, "usuarios/dashboard.html", context)
+	return render(request, "usuarios/dashboard.html", context)

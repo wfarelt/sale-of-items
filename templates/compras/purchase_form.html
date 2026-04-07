@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} compra{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-4">{% if object %}Editar compra #{{ object.id }}{% else %}Registrar nueva compra{% endif %}</h1>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Información principal de la compra -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label" for="id_supplier">Proveedor <span class="text-danger">*</span></label>
+                            {{ form.supplier }}
+                            <div class="text-danger small mt-1">{{ form.supplier.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Detalles de la compra (formset) -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
+                        
+                        {% if formset.non_form_errors %}
+                            <div class="alert alert-danger">
+                                <strong>Errores en el formset:</strong>
+                                {{ formset.non_form_errors|striptags }}
+                            </div>
+                        {% endif %}
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th class="text-center" style="width:120px;">Cantidad</th>
+                                        <th class="text-center" style="width:140px;">Precio unitario</th>
+                                        <th class="text-center" style="width:140px;">Precio venta</th>
+                                        <th class="text-end" style="width:140px;">Subtotal</th>
+                                        <th class="text-center" style="width:90px;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="formset-tbody">
+                                    {% for form_detail in formset %}
+                                        <tr class="formset-row{% if form_detail.DELETE.value %} d-none{% endif %}" id="form_{{ forloop.counter0 }}">
+                                            <!-- Producto -->
+                                            <td>
+                                                {% if form_detail.product.errors %}
+                                                    <div class="text-danger small mb-1">{{ form_detail.product.errors|striptags }}</div>
+                                                {% endif %}
+                                                {{ form_detail.product }}
+                                            </td>
+                                            <!-- Cantidad -->
+                                            <td>
+                                                {% if form_detail.quantity.errors %}
+                                                    <div class="text-danger small mb-1">{{ form_detail.quantity.errors|striptags }}</div>
+                                                {% endif %}
+                                                {{ form_detail.quantity }}
+                                            </td>
+                                            <!-- Precio unitario -->
+                                            <td>
+                                                {% if form_detail.cost_price.errors %}
+                                                    <div class="text-danger small mb-1">{{ form_detail.cost_price.errors|striptags }}</div>
+                                                {% endif %}
+                                                {{ form_detail.cost_price }}
+                                            </td>
+                                            <td>
+                                                {% if form_detail.sale_price.errors %}
+                                                    <div class="text-danger small mb-1">{{ form_detail.sale_price.errors|striptags }}</div>
+                                                {% endif %}
+                                                {{ form_detail.sale_price }}
+                                            </td>
+                                            <!-- Subtotal (calculado) -->
+                                            <td class="text-end align-middle">
+                                                <span class="subtotal-display">0.00</span>
+                                            </td>
+                                            <!-- Boton eliminar -->
+                                            <td class="text-center">
+                                                {{ form_detail.DELETE }}
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                            <!-- Datos ocultos del formset -->
+                                            <td class="d-none">
+                                                {{ form_detail.id }}
+                                                {{ form_detail.ORDER }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="3" class="text-end">TOTAL:</td>
+                                        <td class="text-end">Bs <span id="total-purchase">0.00</span></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="mt-2">
+                            <button type="button" id="btn-add-row" class="btn btn-outline-dark btn-sm">
+                                <i class="fas fa-plus me-1"></i> Agregar producto
+                            </button>
+                        </div>
+
+                        <template id="empty-form-template">
+                            <tr class="formset-row" id="form___prefix__">
+                                <td>
+                                    {{ formset.empty_form.product }}
+                                </td>
+                                <td>
+                                    {{ formset.empty_form.quantity }}
+                                </td>
+                                <td>
+                                    {{ formset.empty_form.cost_price }}
+                                </td>
+                                <td>
+                                    {{ formset.empty_form.sale_price }}
+                                </td>
+                                <td class="text-end align-middle">
+                                    <span class="subtotal-display">0.00</span>
+                                </td>
+                                <td class="text-center">
+                                    {{ formset.empty_form.DELETE }}
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                                <td class="d-none">
+                                    {{ formset.empty_form.id }}
+                                    {{ formset.empty_form.ORDER }}
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Datos del formset (ocultos) -->
+                        {{ formset.management_form }}
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'compras:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button id="btn-submit-purchase" type="submit" class="btn btn-dark">
+                            {% if object %}Actualizar{% else %}Guardar{% endif %} compra
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tbody = document.querySelector('.formset-tbody');
+    const totalFormsInput = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
+    const addRowButton = document.getElementById('btn-add-row');
+    const emptyTemplate = document.getElementById('empty-form-template');
+    const submitButton = document.getElementById('btn-submit-purchase');
+
+    const duplicateAlert = document.createElement('div');
+    duplicateAlert.className = 'alert alert-danger mt-2 d-none';
+    duplicateAlert.innerHTML = '<strong>Productos duplicados:</strong> No puedes repetir el mismo producto en la compra.';
+    tbody.parentElement.insertAdjacentElement('afterend', duplicateAlert);
+
+    function visibleRows() {
+        return Array.from(document.querySelectorAll('.formset-row')).filter(row => !row.classList.contains('d-none'));
+    }
+
+    function rowHasData(row) {
+        const product = row.querySelector('select[name*="-product"]');
+        const quantity = row.querySelector('input[name*="-quantity"]');
+        const costPrice = row.querySelector('input[name*="-cost_price"]');
+
+        return !!(
+            product && product.value &&
+            quantity && quantity.value &&
+            costPrice && costPrice.value
+        );
+    }
+
+    function calculateSalePrice(costPrice) {
+        return (costPrice * 1.35).toFixed(2);
+    }
+
+    function updateSalePriceFromCost(row) {
+        const costPriceInput = row.querySelector('input[name*="-cost_price"]');
+        const salePriceInput = row.querySelector('input[name*="-sale_price"]');
+        if (!costPriceInput || !salePriceInput) {
+            return;
+        }
+
+        const costPrice = parseFloat(costPriceInput.value);
+        if (!isNaN(costPrice) && costPrice > 0) {
+            salePriceInput.value = calculateSalePrice(costPrice);
+        }
+    }
+
+    function validateDuplicateProducts() {
+        const selected = [];
+        let hasDuplicates = false;
+
+        visibleRows().forEach(row => {
+            row.classList.remove('table-danger');
+        });
+
+        visibleRows().forEach(row => {
+            const productSelect = row.querySelector('select[name*="-product"]');
+            if (!productSelect || !productSelect.value) {
+                return;
+            }
+
+            if (selected.includes(productSelect.value)) {
+                hasDuplicates = true;
+                row.classList.add('table-danger');
+            } else {
+                selected.push(productSelect.value);
+            }
+        });
+
+        duplicateAlert.classList.toggle('d-none', !hasDuplicates);
+        submitButton.disabled = hasDuplicates;
+        return !hasDuplicates;
+    }
+
+    function addRow() {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const templateHtml = emptyTemplate.innerHTML.replaceAll('__prefix__', formIndex);
+
+        const temp = document.createElement('tbody');
+        temp.innerHTML = templateHtml.trim();
+        const newRow = temp.firstElementChild;
+
+        tbody.appendChild(newRow);
+        totalFormsInput.value = formIndex + 1;
+
+        updateTotals();
+        validateDuplicateProducts();
+    }
+
+    function maybeAddNextRow(target) {
+        if (!target.matches('select[name*="-product"], input[name*="-quantity"], input[name*="-cost_price"]')) {
+            return;
+        }
+
+        const rows = visibleRows();
+        const lastRow = rows[rows.length - 1];
+        if (!lastRow) {
+            return;
+        }
+
+        if (lastRow.contains(target) && rowHasData(lastRow)) {
+            addRow();
+        }
+    }
+
+    function removeRow(button) {
+        const row = button.closest('.formset-row');
+        if (!row) {
+            return;
+        }
+
+        const deleteInput = row.querySelector('input[name*="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+        }
+
+        row.classList.add('d-none');
+
+        if (visibleRows().length === 0) {
+            addRow();
+        }
+
+        updateTotals();
+        validateDuplicateProducts();
+    }
+
+    function updateTotals() {
+        let totalPurchase = 0;
+        
+        document.querySelectorAll('.formset-row:not(.d-none)').forEach(row => {
+            const quantityInput = row.querySelector('input[name*="quantity"]');
+            const costPriceInput = row.querySelector('input[name*="cost_price"]');
+            const subtotalDisplay = row.querySelector('.subtotal-display');
+            
+            if (quantityInput && costPriceInput) {
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const costPrice = parseFloat(costPriceInput.value) || 0;
+                const subtotal = quantity * costPrice;
+                
+                subtotalDisplay.textContent = subtotal.toFixed(2);
+                totalPurchase += subtotal;
+            }
+        });
+        
+        document.getElementById('total-purchase').textContent = totalPurchase.toFixed(2);
+    }
+    
+    // Update on input change
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[name*="quantity"], input[name*="cost_price"]')) {
+            updateTotals();
+        }
+        if (e.target.matches('input[name*="-cost_price"]')) {
+            const row = e.target.closest('.formset-row');
+            updateSalePriceFromCost(row);
+        }
+        if (e.target.matches('select[name*="-product"]')) {
+            validateDuplicateProducts();
+        }
+        maybeAddNextRow(e.target);
+    });
+    
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name*="quantity"], input[name*="cost_price"]')) {
+            updateTotals();
+        }
+        if (e.target.matches('input[name*="-cost_price"]')) {
+            const row = e.target.closest('.formset-row');
+            updateSalePriceFromCost(row);
+        }
+        maybeAddNextRow(e.target);
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!validateDuplicateProducts()) {
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        const removeButton = e.target.closest('.btn-remove-row');
+        if (removeButton) {
+            removeRow(removeButton);
+        }
+    });
+
+    addRowButton.addEventListener('click', addRow);
+
+    // Oculta los checkbox DELETE del formset
+    document.querySelectorAll('input[name*="-DELETE"]').forEach(function(input) {
+        input.classList.add('d-none');
+    });
+    
+    // Initial calculation
+    updateTotals();
+    validateDuplicateProducts();
+
+    // Inicializa precio de venta para filas existentes
+    visibleRows().forEach(function(row) {
+        updateSalePriceFromCost(row);
+    });
+});
+</script>
+{% endblock %}

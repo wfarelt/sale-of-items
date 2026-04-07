@@ -1,0 +1,61 @@
+from django.core.exceptions import ValidationError
+from django.db import models
+
+from clientes.models import Client
+from productos.models import Product
+
+
+class Sale(models.Model):
+	PAYMENT_TYPE_CHOICES = (
+		("cash", "Efectivo"),
+		("qr", "QR"),
+		("transferencia", "Transferencia"),
+	)
+
+	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
+	client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name="Cliente")
+	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
+	payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, verbose_name="Tipo de pago")
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		ordering = ["-date"]
+		verbose_name = "Venta"
+		verbose_name_plural = "Ventas"
+
+	def __str__(self):
+		return f"Venta #{self.pk} - {self.client.name}"
+
+	def calculate_total(self):
+		total = sum(detail.quantity * detail.price for detail in self.saledetail_set.all())
+		self.total = total
+		self.save(update_fields=["total"])
+		return total
+
+	def apply_inventory_output(self):
+		for detail in self.saledetail_set.select_related("product"):
+			product = detail.product
+			if product.stock < detail.quantity:
+				raise ValidationError(f"Stock insuficiente para {product.name}.")
+			product.stock -= detail.quantity
+			product.save(update_fields=["stock"])
+
+
+class SaleDetail(models.Model):
+	sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name="Venta")
+	product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="Producto")
+	quantity = models.PositiveIntegerField(verbose_name="Cantidad")
+	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
+
+	class Meta:
+		ordering = ["sale"]
+		verbose_name = "Detalle de venta"
+		verbose_name_plural = "Detalles de venta"
+		unique_together = ("sale", "product")
+
+	def __str__(self):
+		return f"{self.product.name} x {self.quantity}"
+
+	def subtotal(self):
+		return self.quantity * self.price

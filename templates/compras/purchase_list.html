@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Compras{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-0">Compras (Ingresos)</h1>
+        <p class="text-muted mb-0">Registro de entradas de inventario</p>
+    </div>
+    <a href="{% url 'compras:create' %}" class="btn btn-dark"><i class="fas fa-plus me-1"></i> Nueva compra</a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-9">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Buscar por proveedor">
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark w-100"><i class="fas fa-magnifying-glass me-1"></i> Buscar</button>
+                <a href="{% url 'compras:list' %}" class="btn btn-outline-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Proveedor</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Total</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td><span class="badge text-bg-secondary font-monospace">{{ purchase.id }}</span></td>
+                    <td>{{ purchase.supplier }}</td>
+                    <td><small class="text-muted">{{ purchase.date|date:'d/m/Y H:i' }}</small></td>
+                    <td class="text-end">
+                        <strong>Bs {{ purchase.total|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {% if purchase.status == 'pendiente' %}
+                            <span class="badge text-bg-warning">Pendiente</span>
+                        {% elif purchase.status == 'recibida' %}
+                            <span class="badge text-bg-success">Recibida</span>
+                        {% else %}
+                            <span class="badge text-bg-danger">Cancelada</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'compras:detail' purchase.pk %}" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye"></i></a>
+                        {% if purchase.status == 'pendiente' %}
+                            <a href="{% url 'compras:update' purchase.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-pen"></i></a>
+                        {% else %}
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Solo se puede editar en estado Pendiente">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                        {% endif %}
+                        <a href="{% url 'compras:delete' purchase.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No hay compras registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3" aria-label="Paginacion de compras">
+    <ul class="pagination justify-content-center mb-0">
+        {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Primera</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Anterior</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Primera</span></li>
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+        {% endif %}
+
+        <li class="page-item active"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+
+        {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Siguiente</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Última</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+            <li class="page-item disabled"><span class="page-link">Última</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
