@@ -46,12 +46,22 @@ class ProductCreateView(InventoryAccessMixin, CreateView):
 	template_name = "productos/product_form.html"
 	success_url = reverse_lazy("productos:list")
 
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs["user"] = self.request.user
+		return kwargs
+
 
 class ProductUpdateView(InventoryAccessMixin, UpdateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
 	success_url = reverse_lazy("productos:list")
+
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs["user"] = self.request.user
+		return kwargs
 
 
 class ProductDeleteView(InventoryAccessMixin, DeleteView):

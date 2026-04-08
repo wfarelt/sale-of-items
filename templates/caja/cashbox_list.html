@@ -113,15 +113,15 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
         <form method="get" class="row g-2 align-items-end">
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-6 col-lg-2">
                 <label for="date" class="form-label mb-1">Fecha</label>
                 <input id="date" type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control">
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6 col-lg-3">
                 <label for="q" class="form-label mb-1">Buscar</label>
                 <input id="q" type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Descripcion del movimiento">
             </div>
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-4 col-lg-2">
                 <label for="type" class="form-label mb-1">Tipo</label>
                 <select id="type" name="type" class="form-select">
                     <option value="">Todos</option>
@@ -130,7 +130,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-4 col-lg-2">
                 <label for="reference" class="form-label mb-1">Referencia</label>
                 <select id="reference" name="reference" class="form-select">
                     <option value="">Todas</option>
@@ -139,7 +139,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-4 col-lg-2">
                 <label for="payment_method" class="form-label mb-1">Medio pago</label>
                 <select id="payment_method" name="payment_method" class="form-select">
                     <option value="">Todos</option>
@@ -148,9 +148,13 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 col-md-1 d-flex gap-2">
-                <button type="submit" class="btn btn-dark w-100"><i class="fas fa-magnifying-glass me-1"></i> Filtrar</button>
-                <a href="{% url 'caja:list' %}" class="btn btn-outline-secondary">Limpiar</a>
+            <div class="col-12 col-md-12 col-lg-1 d-grid gap-2">
+                <button type="submit" class="btn btn-dark" title="Filtrar">
+                    <i class="fas fa-magnifying-glass me-1"></i><span class="d-lg-none">Filtrar</span>
+                </button>
+                <a href="{% url 'caja:list' %}" class="btn btn-outline-secondary" title="Limpiar">
+                    <i class="fas fa-eraser me-1"></i><span class="d-lg-none">Limpiar</span>
+                </a>
             </div>
         </form>
     </div>

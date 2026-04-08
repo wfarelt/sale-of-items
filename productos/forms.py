@@ -36,6 +36,30 @@ class ProductForm(forms.ModelForm):
             "category": forms.Select(attrs={"class": "form-select"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        user_can_manage_values = bool(
+            self.user and self.user.is_authenticated and (self.user.is_admin or self.user.is_almacen)
+        )
+        if not user_can_manage_values:
+            self.fields["price"].disabled = True
+            self.fields["stock"].disabled = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        user_can_manage_values = bool(
+            self.user and self.user.is_authenticated and (self.user.is_admin or self.user.is_almacen)
+        )
+        if not user_can_manage_values:
+            changed_fields = set(getattr(self, "changed_data", []))
+            if {"price", "stock"}.intersection(changed_fields):
+                raise forms.ValidationError("Solo admin y almacen pueden modificar precio y stock.")
+
+        return cleaned_data
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:

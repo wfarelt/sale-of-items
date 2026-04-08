@@ -46,6 +46,11 @@ def dashboard_view(request):
 			{
 				"page_title": "Panel de administracion",
 				"admin_panel_url": "/admin/",
+				"users_total": User.objects.count(),
+				"users_active": User.objects.filter(is_active=True).count(),
+				"users_inactive": User.objects.filter(is_active=False).count(),
+				"roles_total": Role.objects.count(),
+				"users_by_role": Role.objects.annotate(total=Count("user")),
 			}
 		)
 	elif user.is_admin:
@@ -53,10 +58,6 @@ def dashboard_view(request):
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
-				"users_total": User.objects.count(),
-				"users_active": User.objects.filter(is_active=True).count(),
-				"users_inactive": User.objects.filter(is_active=False).count(),
-				"roles_total": Role.objects.count(),
 				"clients_total": Client.objects.count(),
 				"products_total": Product.objects.count(),
 				"products_low_stock": Product.objects.filter(stock__lte=5).count(),
@@ -71,7 +72,6 @@ def dashboard_view(request):
 				"cash_entries_total": CashBox.objects.count(),
 				"cash_income_month": CashBox.objects.filter(type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"cash_expense_month": CashBox.objects.filter(type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
-				"users_by_role": Role.objects.annotate(total=Count("user")),
 			}
 		)
 		context["cash_balance_month"] = context["cash_income_month"] - context["cash_expense_month"]

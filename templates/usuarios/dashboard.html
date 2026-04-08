@@ -74,30 +74,10 @@
 
 <div class="row g-3 mt-1">
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <span class="section-title text-muted d-block mb-2">Acceso exclusivo</span>
-                <h2 class="h5 mb-2">Este usuario solo administra el panel interno</h2>
-                <p class="text-muted mb-3">Desde aqui no se habilitan modulos operativos ni gestion de ventas, caja o almacen.</p>
-                <a href="/admin/" class="btn btn-dark">
-                    <i class="fas fa-cog me-2"></i> Ir al panel de administracion
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# ══════════════════════════════════════════════════ #}
-{#                   BLOQUE ADMIN                      #}
-{# ══════════════════════════════════════════════════ #}
-{% elif request.user.is_admin %}
-
-<div class="row g-3 mt-1">
-    <div class="col-12">
-        <span class="section-title text-muted">Resumen del sistema</span>
+        <span class="section-title text-muted">Resumen de usuarios</span>
     </div>
 
-    <div class="col-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm stat-card h-100">
             <div class="card-body d-flex align-items-center gap-3">
                 <div class="stat-icon bg-primary bg-opacity-10 text-primary">
@@ -111,7 +91,7 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm stat-card h-100">
             <div class="card-body d-flex align-items-center gap-3">
                 <div class="stat-icon bg-success bg-opacity-10 text-success">
@@ -125,7 +105,7 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm stat-card h-100">
             <div class="card-body d-flex align-items-center gap-3">
                 <div class="stat-icon bg-danger bg-opacity-10 text-danger">
@@ -139,21 +119,7 @@
         </div>
     </div>
 
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-info bg-opacity-10 text-info">
-                    <i class="fas fa-address-book"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">{{ clients_total }}</p>
-                    <small class="text-muted">Clientes</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm stat-card h-100">
             <div class="card-body d-flex align-items-center gap-3">
                 <div class="stat-icon bg-warning bg-opacity-10 text-warning">
@@ -166,93 +132,9 @@
             </div>
         </div>
     </div>
-
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-secondary bg-opacity-10 text-secondary">
-                    <i class="fas fa-boxes-stacked"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">{{ products_total }}</p>
-                    <small class="text-muted">Productos</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                    <i class="fas fa-dolly"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">{{ purchases_total }}</p>
-                    <small class="text-muted">Compras totales</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-        <div class="col-6 col-md-4">
-            <div class="card border-0 shadow-sm stat-card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-dark bg-opacity-10 text-dark">
-                        <i class="fas fa-arrows-rotate"></i>
-                    </div>
-                    <div>
-                        <p class="mb-0 display-6 lh-1">{{ movements_total }}</p>
-                        <small class="text-muted">Movimientos</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-info bg-opacity-10 text-info">
-                    <i class="fas fa-hourglass-end"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">{{ purchases_pending }}</p>
-                    <small class="text-muted">Compras pendientes</small>
-                </div>
-            </div>
-        </div>
 </div>
 
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-success bg-opacity-10 text-success">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">Bs {{ cash_balance_month|floatformat:2 }}</p>
-                    <small class="text-muted">Saldo caja del mes</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-4 col-xl">
-        <div class="card border-0 shadow-sm stat-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-success bg-opacity-10 text-success">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div>
-                    <p class="mb-0 display-6 lh-1">{{ sales_today_total }}</p>
-                    <small class="text-muted">Ventas de hoy</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
 <div class="row g-3 mt-1">
-    {# Distribución de usuarios por rol #}
     <div class="col-12 col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white border-bottom">
@@ -275,6 +157,133 @@
                     {% endfor %}
                 </ul>
             </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center gap-2">
+                <a href="/admin/" class="btn btn-dark px-4">
+                    <i class="fas fa-cog me-2"></i> Ir al panel de administracion
+                </a>
+                <small class="text-muted">Gestion de usuarios, roles y configuracion del sistema</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{#                   BLOQUE ADMIN                      #}
+{# ══════════════════════════════════════════════════ #}
+{% elif request.user.is_admin %}
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <span class="section-title text-muted">Resumen del sistema</span>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-address-book"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ clients_total }}</p>
+                    <small class="text-muted">Clientes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="fas fa-boxes-stacked"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ products_total }}</p>
+                    <small class="text-muted">Productos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-dolly"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ purchases_total }}</p>
+                    <small class="text-muted">Compras totales</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-hourglass-end"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ purchases_pending }}</p>
+                    <small class="text-muted">Compras pendientes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-dark bg-opacity-10 text-dark">
+                    <i class="fas fa-arrows-rotate"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ movements_total }}</p>
+                    <small class="text-muted">Movimientos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">{{ sales_today_total }}</p>
+                    <small class="text-muted">Ventas de hoy</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div>
+                    <p class="mb-0 display-6 lh-1">Bs {{ cash_balance_month|floatformat:2 }}</p>
+                    <small class="text-muted">Saldo caja del mes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="row g-3 mt-1">
+    {# Placeholder para grafico futuro #}
+    <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100" id="chart-placeholder">
         </div>
     </div>
 
