@@ -16,7 +16,7 @@ print("Creando roles...")
 admin_role, created = Role.objects.get_or_create(
     name='admin',
     defaults={
-        'description': 'Acceso total al sistema'
+        'description': 'Puede gestionar todos los modulos operativos y ver reportes'
     }
 )
 print(f"✓ Rol Admin {'creado' if created else 'ya existía'}")
@@ -37,25 +37,41 @@ almacen_role, created = Role.objects.get_or_create(
 )
 print(f"✓ Rol Almacén {'creado' if created else 'ya existía'}")
 
-# Crear usuario administrador
+# Crear superusuario
 print("\nCreando usuarios de prueba...")
-admin_user, created = User.objects.get_or_create(
-    username='admin',
+superuser, created = User.objects.update_or_create(
+    username='superadmin',
     defaults={
-        'email': 'admin@example.com',
-        'first_name': 'Administrador',
-        'last_name': 'Sistema',
+        'email': 'superadmin@example.com',
+        'first_name': 'Super',
+        'last_name': 'Usuario',
         'role': admin_role,
         'is_staff': True,
         'is_superuser': True,
         'is_active': True,
+        'password': make_password('superadmin123')
+    }
+)
+print(f"✓ Superusuario {'creado' if created else 'actualizado'} - Contraseña: superadmin123")
+
+# Crear usuario administrador operativo
+admin_user, created = User.objects.update_or_create(
+    username='admin',
+    defaults={
+        'email': 'admin@example.com',
+        'first_name': 'Administrador',
+        'last_name': 'Operativo',
+        'role': admin_role,
+        'is_staff': False,
+        'is_superuser': False,
+        'is_active': True,
         'password': make_password('admin123')
     }
 )
-print(f"✓ Usuario Admin {'creado' if created else 'ya existía'} - Contraseña: admin123")
+print(f"✓ Usuario Admin {'creado' if created else 'actualizado'} - Contraseña: admin123")
 
 # Crear usuario vendedor
-vendedor_user, created = User.objects.get_or_create(
+vendedor_user, created = User.objects.update_or_create(
     username='vendedor',
     defaults={
         'email': 'vendedor@example.com',
@@ -66,10 +82,10 @@ vendedor_user, created = User.objects.get_or_create(
         'password': make_password('vendedor123')
     }
 )
-print(f"✓ Usuario Vendedor {'creado' if created else 'ya existía'} - Contraseña: vendedor123")
+print(f"✓ Usuario Vendedor {'creado' if created else 'actualizado'} - Contraseña: vendedor123")
 
 # Crear usuario almacén
-almacen_user, created = User.objects.get_or_create(
+almacen_user, created = User.objects.update_or_create(
     username='almacen',
     defaults={
         'email': 'almacen@example.com',
@@ -80,7 +96,7 @@ almacen_user, created = User.objects.get_or_create(
         'password': make_password('almacen123')
     }
 )
-print(f"✓ Usuario Almacén {'creado' if created else 'ya existía'} - Contraseña: almacen123")
+print(f"✓ Usuario Almacén {'creado' if created else 'actualizado'} - Contraseña: almacen123")
 
 print("\n" + "=" * 60)
 print("👥 CREANDO CLIENTES (5)...")
@@ -185,6 +201,9 @@ print("✅ DATOS INICIALES CREADOS EXITOSAMENTE")
 print("=" * 60)
 print("\n� Credenciales de acceso al panel admin:")
 print("   URL: http://localhost:8000/admin/")
+print("\n   Superusuario:")
+print("   → Usuario: superadmin")
+print("   → Contraseña: superadmin123")
 print("\n   Admin:")
 print("   → Usuario: admin")
 print("   → Contraseña: admin123")

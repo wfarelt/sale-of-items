@@ -81,7 +81,7 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role.name == 'admin'
+        return not self.is_superuser and self.role.name == 'admin'
 
     @property
     def is_vendedor(self):
@@ -90,3 +90,15 @@ class User(AbstractUser):
     @property
     def is_almacen(self):
         return self.role.name == 'almacen'
+
+    @property
+    def display_role_name(self):
+        if self.is_superuser:
+            return 'Superusuario'
+        return str(self.role)
+
+    @property
+    def display_role_description(self):
+        if self.is_superuser:
+            return 'Acceso exclusivo al panel de administracion del sistema.'
+        return self.role.description

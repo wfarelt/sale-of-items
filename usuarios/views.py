@@ -38,11 +38,17 @@ class PasswordChangeDoneView(auth_views.PasswordChangeDoneView):
 @login_required
 def dashboard_view(request):
 	user = request.user
-	role = user.role.name
 
 	context = {"page_title": "Dashboard"}
 
-	if role == "admin":
+	if user.is_superuser:
+		context.update(
+			{
+				"page_title": "Panel de administracion",
+				"admin_panel_url": "/admin/",
+			}
+		)
+	elif user.is_admin:
 		now = timezone.localtime()
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
@@ -58,6 +64,8 @@ def dashboard_view(request):
 				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
 				"purchases_total_value": Purchase.objects.filter(status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
 				"sales_total": Sale.objects.count(),
+				"sales_today_total": Sale.objects.filter(date__date=now.date()).count(),
+				"sales_today_amount": Sale.objects.filter(date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
 				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
 				"movements_total": InventoryMovement.objects.count(),
 				"cash_entries_total": CashBox.objects.count(),
@@ -67,7 +75,7 @@ def dashboard_view(request):
 			}
 		)
 		context["cash_balance_month"] = context["cash_income_month"] - context["cash_expense_month"]
-	elif role == "vendedor":
+	elif user.is_vendedor:
 		now = timezone.localtime()
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
@@ -79,7 +87,7 @@ def dashboard_view(request):
 				"clientes_total": Client.objects.count(),
 			}
 		)
-	elif role == "almacen":
+	elif user.is_almacen:
 		now = timezone.localtime()
 		context.update(
 			{

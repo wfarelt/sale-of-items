@@ -18,6 +18,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from types import MethodType
+
+
+def admin_has_permission(self, request):
+    return request.user.is_active and request.user.is_superuser
+
+
+admin.site.has_permission = MethodType(admin_has_permission, admin.site)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

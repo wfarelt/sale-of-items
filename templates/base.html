@@ -68,13 +68,22 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item" href="{% url 'usuarios:dashboard' %}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                                <li><a class="dropdown-item" href="{% url 'clientes:list' %}"><i class="fas fa-address-book"></i> Clientes</a></li>
-                                <li><a class="dropdown-item" href="{% url 'productos:list' %}"><i class="fas fa-boxes-stacked"></i> Productos</a></li>
-                                <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>
-                                <li><a class="dropdown-item" href="{% url 'ventas:list' %}"><i class="fas fa-cash-register"></i> Ventas</a></li>
-                                <li><a class="dropdown-item" href="{% url 'movimientos:list' %}"><i class="fas fa-arrows-rotate"></i> Movimientos</a></li>
-                                <li><a class="dropdown-item" href="{% url 'caja:list' %}"><i class="fas fa-wallet"></i> Caja</a></li>
-                                <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog"></i> Admin</a></li>
+                                {% if user.is_superuser %}
+                                    <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog"></i> Panel de administracion</a></li>
+                                {% else %}
+                                    {% if user.is_admin or user.is_vendedor %}
+                                        <li><a class="dropdown-item" href="{% url 'clientes:list' %}"><i class="fas fa-address-book"></i> Clientes</a></li>
+                                    {% endif %}
+                                    {% if user.is_admin or user.is_almacen %}
+                                        <li><a class="dropdown-item" href="{% url 'productos:list' %}"><i class="fas fa-boxes-stacked"></i> Productos</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'movimientos:list' %}"><i class="fas fa-arrows-rotate"></i> Movimientos</a></li>
+                                    {% endif %}
+                                    {% if user.is_admin or user.is_vendedor %}
+                                        <li><a class="dropdown-item" href="{% url 'ventas:list' %}"><i class="fas fa-cash-register"></i> Ventas</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'caja:list' %}"><i class="fas fa-wallet"></i> Caja</a></li>
+                                    {% endif %}
+                                {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'usuarios:password_change' %}"><i class="fas fa-key"></i> Cambiar contrasena</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
