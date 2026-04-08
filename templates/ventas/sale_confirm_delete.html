@@ -1,29 +1,29 @@
 {% extends 'base.html' %}
 
-{% block title %}Eliminar venta{% endblock %}
+{% block title %}Anular venta{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-md-6">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h5 mb-3"><i class="fas fa-exclamation-triangle text-danger me-2"></i> Eliminar venta</h1>
+                <h1 class="h5 mb-3"><i class="fas fa-exclamation-triangle text-danger me-2"></i> Anular venta</h1>
                 <div class="alert alert-warning">
-                    <p class="mb-0"><strong>¿Eliminar la venta #{{ object.id }}?</strong></p>
+                    <p class="mb-0"><strong>¿Anular la venta #{{ object.id }}?</strong></p>
                     <p class="small text-muted mt-2 mb-0">Cliente: <strong>{{ object.client.name }}</strong></p>
                     <p class="small text-muted mb-0">Total: <strong>Bs {{ object.total|floatformat:2 }}</strong></p>
                 </div>
                 <p class="text-muted">
                     {% if object.status == 'confirmada' %}
-                        Esta acción restaurará el stock de los productos vendidos.
+                        Esta acción restaurará stock y registrará movimientos de reversa en inventario y caja.
                     {% else %}
-                        Esta proforma no afectó el stock. Solo se eliminará el registro.
+                        Esta proforma no afectó el stock ni caja. Solo cambiará su estado a anulada.
                     {% endif %}
                 </p>
                 <form method="post" class="d-flex gap-2">
                     {% csrf_token %}
                     <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-danger">Eliminar venta</button>
+                    <button type="submit" class="btn btn-danger">Anular venta</button>
                 </form>
             </div>
         </div>

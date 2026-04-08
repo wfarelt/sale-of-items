@@ -50,6 +50,8 @@
                     <td>
                         {% if sale.status == 'confirmada' %}
                             <span class="badge text-bg-success">Confirmada</span>
+                        {% elif sale.status == 'anulada' %}
+                            <span class="badge text-bg-danger">Anulada</span>
                         {% else %}
                             <span class="badge text-bg-warning text-dark">Proforma</span>
                         {% endif %}
@@ -61,7 +63,9 @@
                         {% if sale.status == 'proforma' %}
                             <a href="{% url 'ventas:update' sale.pk %}" class="btn btn-sm btn-outline-warning"><i class="fas fa-pen"></i></a>
                         {% endif %}
-                        <a href="{% url 'ventas:delete' sale.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        {% if user.is_admin and sale.status != 'anulada' %}
+                            <a href="{% url 'ventas:delete' sale.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban"></i></a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

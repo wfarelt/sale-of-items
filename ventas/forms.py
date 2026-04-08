@@ -9,6 +9,10 @@ class SaleForm(forms.ModelForm):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields["client"].queryset = self.fields["client"].queryset.filter(is_active=True)
+		self.fields["status"].choices = [
+			(Sale.STATUS_PROFORMA, "Proforma"),
+			(Sale.STATUS_CONFIRMED, "Confirmada"),
+		]
 
 	class Meta:
 		model = Sale

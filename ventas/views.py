@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from productos.models import Product
@@ -184,9 +185,23 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 	template_name = "ventas/sale_confirm_delete.html"
 	success_url = reverse_lazy("ventas:list")
 
+	def get(self, request, *args, **kwargs):
+		if not request.user.is_admin:
+			messages.error(request, "Solo un administrador puede anular ventas.")
+			return redirect(self.success_url)
+		return super().get(request, *args, **kwargs)
+
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
+		if not request.user.is_admin:
+			messages.error(request, "Solo un administrador puede anular ventas.")
+			return redirect(self.success_url)
+
 		self.object = self.get_object()
+		if self.object.status == self.object.STATUS_CANCELED:
+			messages.info(request, "La venta ya se encuentra anulada.")
+			return redirect(self.success_url)
+
 		if self.object.status == self.object.STATUS_CONFIRMED:
 			from caja.models import CashBox
 			try:
@@ -196,7 +211,12 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 				return redirect(self.success_url)
 			self.object.restore_inventory_output()
 			CashBox.register_sale_reversal(self.object)
-			messages.warning(request, "Venta eliminada y stock restaurado.")
+			messages.warning(request, "Venta anulada y stock restaurado.")
 		else:
-			messages.warning(request, "Proforma eliminada.")
-		return super().post(request, *args, **kwargs)
+			messages.warning(request, "Proforma anulada.")
+
+		self.object.status = self.object.STATUS_CANCELED
+		self.object.canceled_by = request.user
+		self.object.canceled_at = timezone.now()
+		self.object.save(update_fields=["status", "canceled_by", "canceled_at", "updated_at"])
+		return redirect(self.success_url)

@@ -15,9 +15,11 @@ class Sale(models.Model):
 
 	STATUS_PROFORMA = "proforma"
 	STATUS_CONFIRMED = "confirmada"
+	STATUS_CANCELED = "anulada"
 	STATUS_CHOICES = (
 		(STATUS_PROFORMA, "Proforma"),
 		(STATUS_CONFIRMED, "Confirmada"),
+		(STATUS_CANCELED, "Anulada"),
 	)
 
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
@@ -36,6 +38,15 @@ class Sale(models.Model):
 		default=STATUS_CONFIRMED,
 		verbose_name="Estado",
 	)
+	canceled_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		verbose_name="Anulada por",
+		related_name="canceled_sales",
+	)
+	canceled_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de anulacion")
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, verbose_name="Tipo de pago")
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -88,8 +99,8 @@ class Sale(models.Model):
 
 		InventoryMovement.create_movement(
 			movement_type=InventoryMovement.TYPE_IN,
-			reference=f"Eliminación venta #{self.pk}",
-			description=f"Reversa de venta del cliente {self.client.name}",
+			reference=f"Anulación venta #{self.pk}",
+			description=f"Reversa por anulación de venta al cliente {self.client.name}",
 			details=movement_details,
 		)
 

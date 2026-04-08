@@ -25,6 +25,8 @@
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Estado</small>
             {% if sale.status == 'confirmada' %}
                 <span class="badge text-bg-success">Confirmada</span>
+            {% elif sale.status == 'anulada' %}
+                <span class="badge text-bg-danger">Anulada</span>
             {% else %}
                 <span class="badge text-bg-warning text-dark">Proforma</span>
             {% endif %}
@@ -33,6 +35,14 @@
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Pago</small><div class="fw-semibold">{{ sale.get_payment_type_display }}</div></div></div>
     </div>
+    {% if sale.status == 'anulada' %}
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Anulada por</small><div class="fw-semibold">{% if sale.canceled_by %}{{ sale.canceled_by.get_full_name|default:sale.canceled_by.username }}{% else %}-{% endif %}</div></div></div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Fecha de anulacion</small><div class="fw-semibold">{{ sale.canceled_at|date:'d/m/Y H:i'|default:'-' }}</div></div></div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="card border-0 shadow-sm">
