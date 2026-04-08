@@ -1,5 +1,7 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -57,3 +59,13 @@ class ClientDeleteView(ClientAccessMixin, DeleteView):
 	model = Client
 	template_name = "clientes/client_confirm_delete.html"
 	success_url = reverse_lazy("clientes:list")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active", "updated_at"])
+		if self.object.is_active:
+			messages.success(request, "Cliente activado correctamente.")
+		else:
+			messages.warning(request, "Cliente desactivado correctamente.")
+		return redirect(self.success_url)

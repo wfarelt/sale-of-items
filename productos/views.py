@@ -1,5 +1,7 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -69,6 +71,16 @@ class ProductDeleteView(InventoryAccessMixin, DeleteView):
 	template_name = "productos/product_confirm_delete.html"
 	success_url = reverse_lazy("productos:list")
 
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active", "updated_at"])
+		if self.object.is_active:
+			messages.success(request, "Producto activado correctamente.")
+		else:
+			messages.warning(request, "Producto desactivado correctamente.")
+		return redirect(self.success_url)
+
 
 class CategoryListView(InventoryAccessMixin, ListView):
 	model = Category
@@ -95,6 +107,16 @@ class CategoryDeleteView(InventoryAccessMixin, DeleteView):
 	template_name = "productos/category_confirm_delete.html"
 	success_url = reverse_lazy("productos:categories")
 
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Categoria activada correctamente.")
+		else:
+			messages.warning(request, "Categoria desactivada correctamente.")
+		return redirect(self.success_url)
+
 
 class BrandListView(InventoryAccessMixin, ListView):
 	model = Brand
@@ -120,3 +142,13 @@ class BrandDeleteView(InventoryAccessMixin, DeleteView):
 	model = Brand
 	template_name = "productos/brand_confirm_delete.html"
 	success_url = reverse_lazy("productos:brands")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Marca activada correctamente.")
+		else:
+			messages.warning(request, "Marca desactivada correctamente.")
+		return redirect(self.success_url)

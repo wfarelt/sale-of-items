@@ -1,20 +1,28 @@
 {% extends 'base.html' %}
 
-{% block title %}Eliminar cliente{% endblock %}
+{% block title %}Cambiar estado de cliente{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h4">Eliminar cliente</h1>
-                <p class="mb-4">Confirma la eliminacion del cliente <strong>{{ object.name }}</strong> ({{ object.nit_ci }}).</p>
+                <h1 class="h4">Cambiar estado de cliente</h1>
+                <p class="mb-4">
+                    {% if object.is_active %}
+                        Confirma desactivar al cliente <strong>{{ object.name }}</strong> ({{ object.nit_ci }}).
+                    {% else %}
+                        Confirma activar al cliente <strong>{{ object.name }}</strong> ({{ object.nit_ci }}).
+                    {% endif %}
+                </p>
 
                 <form method="post">
                     {% csrf_token %}
                     <div class="d-flex gap-2">
                         <a href="{% url 'clientes:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                        <button type="submit" class="btn {% if object.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                            {% if object.is_active %}Desactivar{% else %}Activar{% endif %}
+                        </button>
                     </div>
                 </form>
             </div>

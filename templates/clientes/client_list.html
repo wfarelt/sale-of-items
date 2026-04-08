@@ -45,6 +45,7 @@
                     <th>Telefono</th>
                     <th>Correo</th>
                     <th>Direccion</th>
+                    <th>Estado</th>
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -56,18 +57,25 @@
                     <td>{{ client.phone|default:'-' }}</td>
                     <td>{{ client.email|default:'-' }}</td>
                     <td>{{ client.address|default:'-' }}</td>
+                    <td>
+                        {% if client.is_active %}
+                            <span class="badge text-bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end">
                         <a href="{% url 'clientes:update' client.pk %}" class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-pen"></i>
                         </a>
-                        <a href="{% url 'clientes:delete' client.pk %}" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-trash"></i>
+                        <a href="{% url 'clientes:delete' client.pk %}" class="btn btn-sm {% if client.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                            <i class="fas {% if client.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No hay clientes registrados.</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No hay clientes registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

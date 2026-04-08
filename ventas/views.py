@@ -89,7 +89,7 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 			kwargs["formset"] = SaleDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
-		products = Product.objects.select_related("brand", "category").all()
+		products = Product.objects.select_related("brand", "category").filter(is_active=True)
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
@@ -160,7 +160,7 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 			kwargs["formset"] = SaleDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
-		products = Product.objects.select_related("brand", "category").all()
+		products = Product.objects.select_related("brand", "category").filter(is_active=True)
 		kwargs["products_data"] = [
 			{
 				"id": product.id,

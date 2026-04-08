@@ -20,6 +20,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Nombre</th>
+                    <th>Estado</th>
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -27,13 +28,20 @@
                 {% for category in categories %}
                 <tr>
                     <td>{{ category.name }}</td>
+                    <td>
+                        {% if category.is_active %}
+                            <span class="badge text-bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end">
                         <a href="{% url 'productos:category_update' category.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-pen"></i></a>
-                        <a href="{% url 'productos:category_delete' category.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        <a href="{% url 'productos:category_delete' category.pk %}" class="btn btn-sm {% if category.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"><i class="fas {% if category.is_active %}fa-toggle-off{% else %}fa-toggle-on{% endif %}"></i></a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="2" class="text-center py-4 text-muted">No hay categorias registradas.</td></tr>
+                <tr><td colspan="3" class="text-center py-4 text-muted">No hay categorias registradas.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

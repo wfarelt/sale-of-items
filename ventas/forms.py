@@ -6,6 +6,10 @@ from .models import Sale, SaleDetail
 
 
 class SaleForm(forms.ModelForm):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields["client"].queryset = self.fields["client"].queryset.filter(is_active=True)
+
 	class Meta:
 		model = Sale
 		fields = ["client", "payment_type", "status"]

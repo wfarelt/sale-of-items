@@ -3,6 +3,7 @@ from django.db import models
 
 class Category(models.Model):
 	name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+	is_active = models.BooleanField(default=True, verbose_name="Activo")
 
 	class Meta:
 		ordering = ["name"]
@@ -15,6 +16,7 @@ class Category(models.Model):
 
 class Brand(models.Model):
 	name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+	is_active = models.BooleanField(default=True, verbose_name="Activo")
 
 	class Meta:
 		ordering = ["name"]
@@ -45,6 +47,7 @@ class Product(models.Model):
 	color = models.CharField(max_length=50, blank=True, verbose_name="Color")
 	brand = models.ForeignKey(Brand, on_delete=models.PROTECT, verbose_name="Marca")
 	category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name="Categoria")
+	is_active = models.BooleanField(default=True, verbose_name="Activo")
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
 

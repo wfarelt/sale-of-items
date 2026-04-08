@@ -41,6 +41,7 @@
                     <th>Marca</th>
                     <th>Talla</th>
                     <th>Color</th>
+                    <th>Estado</th>
                     <th class="text-end">Precio</th>
                     <th class="text-end">Stock</th>
                     <th class="text-end">Acciones</th>
@@ -65,6 +66,13 @@
                     <td>{{ product.brand }}</td>
                     <td>{{ product.size|default:'-' }}</td>
                     <td>{{ product.color|default:'-' }}</td>
+                    <td>
+                        {% if product.is_active %}
+                            <span class="badge text-bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end">Bs {{ product.price }}</td>
                     <td class="text-end">
                         {% if product.stock <= 5 %}
@@ -75,12 +83,12 @@
                     </td>
                     <td class="text-end">
                         <a href="{% url 'productos:update' product.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-pen"></i></a>
-                        <a href="{% url 'productos:delete' product.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        <a href="{% url 'productos:delete' product.pk %}" class="btn btn-sm {% if product.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"><i class="fas {% if product.is_active %}fa-box-open{% else %}fa-box{% endif %}"></i></a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10" class="text-center py-4 text-muted">No hay productos registrados.</td>
+                    <td colspan="11" class="text-center py-4 text-muted">No hay productos registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -7,6 +7,7 @@ class Client(models.Model):
 	email = models.EmailField(blank=True, verbose_name="Correo")
 	address = models.CharField(max_length=255, blank=True, verbose_name="Direccion")
 	nit_ci = models.CharField(max_length=30, unique=True, verbose_name="NIT/CI")
+	is_active = models.BooleanField(default=True, verbose_name="Activo")
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
 
