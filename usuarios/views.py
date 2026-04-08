@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 
 from clientes.models import Client
+from caja.models import CashBox
 from movimientos.models import InventoryMovement
 from productos.models import Product
 from compras.models import Purchase
@@ -59,9 +60,13 @@ def dashboard_view(request):
 				"sales_total": Sale.objects.count(),
 				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
 				"movements_total": InventoryMovement.objects.count(),
+				"cash_entries_total": CashBox.objects.count(),
+				"cash_income_month": CashBox.objects.filter(type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
+				"cash_expense_month": CashBox.objects.filter(type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"users_by_role": Role.objects.annotate(total=Count("user")),
 			}
 		)
+		context["cash_balance_month"] = context["cash_income_month"] - context["cash_expense_month"]
 	elif role == "vendedor":
 		now = timezone.localtime()
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -69,6 +74,7 @@ def dashboard_view(request):
 			{
 				"ventas_hoy": Sale.objects.filter(date__date=now.date()).count(),
 				"ventas_mes": Sale.objects.filter(date__gte=month_start).count(),
+				"caja_mes": CashBox.objects.filter(date__gte=month_start, type=CashBox.TYPE_INCOME).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"ultimas_ventas": Sale.objects.select_related("client").all()[:5],
 				"clientes_total": Client.objects.count(),
 			}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo movimiento de caja{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="h4 mb-0">Nuevo movimiento de caja</h1>
+                <p class="text-muted mb-0">Registra ingresos o egresos manuales</p>
+            </div>
+            <a href="{% url 'caja:list' %}" class="btn btn-outline-secondary">Volver</a>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="{{ form.date.id_for_label }}" class="form-label">Fecha</label>
+                            {{ form.date }}
+                            {% for error in form.date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="{{ form.type.id_for_label }}" class="form-label">Tipo</label>
+                            {{ form.type }}
+                            {% for error in form.type.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="{{ form.amount.id_for_label }}" class="form-label">Monto</label>
+                            {{ form.amount }}
+                            {% for error in form.amount.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="{{ form.payment_method.id_for_label }}" class="form-label">Medio de pago</label>
+                            {{ form.payment_method }}
+                            {% for error in form.payment_method.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="{{ form.reference.id_for_label }}" class="form-label">Referencia</label>
+                            {{ form.reference }}
+                            {% for error in form.reference.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Descripcion</label>
+                            {{ form.description }}
+                            {% for error in form.description.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'caja:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-dark"><i class="fas fa-floppy-disk me-1"></i> Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

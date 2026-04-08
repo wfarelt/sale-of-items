@@ -66,7 +66,10 @@ class PurchaseCreateView(InventoryAccessMixin, CreateView):
 
 			# Actualizar stock si es "recibida"
 			if self.object.status == "recibida":
+				from caja.models import CashBox
+				CashBox.validate_day_open(self.object.date)
 				self.object.apply_inventory_update()
+				CashBox.register_purchase(self.object)
 
 			messages.success(request, "Compra registrada exitosamente.")
 			return redirect(self.success_url)
@@ -114,7 +117,10 @@ class PurchaseUpdateView(InventoryAccessMixin, UpdateView):
 
 			# Si cambió a "recibida" desde otro estado, actualizar stock
 			if old_status != "recibida" and self.object.status == "recibida":
+				from caja.models import CashBox
+				CashBox.validate_day_open(self.object.date)
 				self.object.apply_inventory_update()
+				CashBox.register_purchase(self.object)
 				messages.info(request, f"Stock actualizado: +{sum(d.quantity for d in self.object.purchasedetail_set.all())} unidades.")
 
 			messages.success(request, "Compra actualizada exitosamente.")
@@ -140,11 +146,14 @@ class PurchaseDeleteView(InventoryAccessMixin, DeleteView):
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
 		if self.object.status == "recibida":
+			from caja.models import CashBox
 			try:
+				CashBox.validate_day_open()
 				self.object.revert_inventory_update()
 			except ValidationError as exc:
 				messages.error(request, str(exc))
 				return redirect(self.success_url)
+			CashBox.register_purchase_reversal(self.object)
 			messages.warning(request, "Compra eliminada y stock revertido.")
 		else:
 			messages.warning(request, "Compra eliminada.")

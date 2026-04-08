@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar movimiento de caja{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h1 class="h4">Eliminar movimiento de caja</h1>
+                <p class="text-muted">Esta accion quitara el registro seleccionado del historial de caja.</p>
+
+                <div class="alert alert-warning mb-4">
+                    <strong>{{ object.get_type_display }}</strong> por <strong>Bs {{ object.amount|floatformat:2 }}</strong><br>
+                    {{ object.description }}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'caja:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

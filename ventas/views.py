@@ -63,12 +63,16 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 			formset.instance = self.object
 			formset.save()
 			self.object.calculate_total()
+			from caja.models import CashBox
+			CashBox.validate_day_open(self.object.date)
 			try:
 				self.object.apply_inventory_output()
 			except ValidationError as exc:
 				messages.error(request, str(exc))
 				self.object.delete()
 				return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+
+			CashBox.register_sale(self.object)
 
 			messages.success(request, "Venta registrada exitosamente.")
 			return redirect(self.success_url)
@@ -80,7 +84,21 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 			kwargs["formset"] = SaleDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
-		kwargs["products_data"] = list(Product.objects.values("id", "stock", "price"))
+		products = Product.objects.select_related("brand", "category").all()
+		kwargs["products_data"] = [
+			{
+				"id": product.id,
+				"name": product.name,
+				"price": float(product.price),
+				"stock": product.stock,
+				"brand": product.brand.name,
+				"category": product.category.name,
+				"size": product.size,
+				"color": product.color,
+				"image": product.image.url if product.image else "",
+			}
+			for product in products
+		]
 		return super().get_context_data(**kwargs)
 
 
@@ -92,6 +110,13 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
+		from caja.models import CashBox
+		try:
+			CashBox.validate_day_open()
+		except ValidationError as exc:
+			messages.error(request, str(exc))
+			return redirect(self.success_url)
 		self.object.restore_inventory_output()
+		CashBox.register_sale_reversal(self.object)
 		messages.warning(request, "Venta eliminada y stock restaurado.")
 		return super().post(request, *args, **kwargs)

@@ -25,80 +25,150 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
+                    <div class="row g-4 mb-3">
+                        <div class="col-12 col-xl-7">
+                            <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
 
-                        {% if formset.non_form_errors %}
-                            <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
-                        {% endif %}
+                            <div class="card border h-100">
+                                <div class="card-body">
+                                    <div class="row g-2 align-items-end mb-3">
+                                        <div class="col-md-6">
+                                            <label for="product-search" class="form-label">Buscar producto</label>
+                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, marca, color, categoria...">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="filter-category" class="form-label">Categoria</label>
+                                            <select id="filter-category" class="form-select">
+                                                <option value="">Todas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="filter-brand" class="form-label">Marca</label>
+                                            <select id="filter-brand" class="form-select">
+                                                <option value="">Todas</option>
+                                            </select>
+                                        </div>
+                                    </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th class="text-center" style="width:120px;">Stock</th>
-                                        <th class="text-center" style="width:120px;">Cantidad</th>
-                                        <th class="text-center" style="width:140px;">Precio</th>
-                                        <th class="text-end" style="width:140px;">Subtotal</th>
-                                        <th class="text-center" style="width:90px;">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="formset-tbody">
-                                    {% for form_detail in formset %}
-                                        <tr class="formset-row{% if form_detail.DELETE.value %} d-none{% endif %}">
-                                            <td>{{ form_detail.product }}</td>
-                                            <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
-                                            <td>{{ form_detail.quantity }}</td>
-                                            <td>{{ form_detail.price }}</td>
-                                            <td class="text-end align-middle"><span class="subtotal-display">0.00</span></td>
-                                            <td class="text-center">
-                                                {{ form_detail.DELETE }}
-                                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
-                                            </td>
-                                            <td class="d-none">{{ form_detail.id }}{{ form_detail.ORDER }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light fw-bold">
-                                        <td colspan="4" class="text-end">TOTAL:</td>
-                                        <td class="text-end">Bs <span id="total-sale">0.00</span></td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                    <div class="row g-2 align-items-end mb-3">
+                                        <div class="col-md-3">
+                                            <label for="filter-size" class="form-label">Talla</label>
+                                            <select id="filter-size" class="form-select">
+                                                <option value="">Todas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="filter-color" class="form-label">Color</label>
+                                            <select id="filter-color" class="form-select">
+                                                <option value="">Todos</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check pt-4">
+                                                <input class="form-check-input" type="checkbox" id="filter-stock" checked>
+                                                <label class="form-check-label" for="filter-stock">Solo con stock</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-md-end">
+                                            <small class="text-muted" id="product-result-count"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3" id="product-card-list"></div>
+
+                                    <div id="product-pagination" class="d-flex justify-content-between align-items-center mt-3 d-none">
+                                        <button type="button" id="products-prev-page" class="btn btn-sm btn-outline-secondary">Anterior</button>
+                                        <small class="text-muted" id="product-page-info">Pagina 1 de 1</small>
+                                        <button type="button" id="products-next-page" class="btn btn-sm btn-outline-secondary">Siguiente</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mt-2">
-                            <button type="button" id="btn-add-row" class="btn btn-outline-dark btn-sm"><i class="fas fa-plus me-1"></i> Agregar producto</button>
+                        <div class="col-12 col-xl-5">
+                            <h5 class="mb-3">Detalle de la venta</h5>
+
+                            <div class="card border sale-detail-panel">
+                                <div class="card-body">
+                                    {% if formset.non_form_errors %}
+                                        <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
+                                    {% endif %}
+
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Producto</th>
+                                                    <th class="text-center" style="width:90px;">Stock</th>
+                                                    <th class="text-center" style="width:95px;">Cant.</th>
+                                                    <th class="text-center" style="width:110px;">Precio</th>
+                                                    <th class="text-end" style="width:110px;">Subtotal</th>
+                                                    <th class="text-center" style="width:70px;">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="formset-tbody">
+                                                {% for form_detail in formset %}
+                                                    <tr class="formset-row{% if form_detail.DELETE.value %} d-none{% endif %}">
+                                                        <td>
+                                                            <div class="product-display text-muted">Sin producto</div>
+                                                            <div class="d-none">{{ form_detail.product }}</div>
+                                                        </td>
+                                                        <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
+                                                        <td>{{ form_detail.quantity }}</td>
+                                                        <td>{{ form_detail.price }}</td>
+                                                        <td class="text-end"><span class="subtotal-display">0.00</span></td>
+                                                        <td class="text-center">
+                                                            {{ form_detail.DELETE }}
+                                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
+                                                        </td>
+                                                        <td class="d-none">{{ form_detail.id }}{{ form_detail.ORDER }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-light fw-bold">
+                                                    <td colspan="4" class="text-end">TOTAL:</td>
+                                                    <td class="text-end">Bs <span id="total-sale">0.00</span></td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+
+                                    <div id="sale-detail-empty" class="small text-muted mt-2">Agrega productos desde las tarjetas para iniciar el detalle de la venta.</div>
+
+                                    <div id="duplicate-alert" class="alert alert-danger d-none mt-3 mb-2">No puedes repetir el mismo producto en una venta.</div>
+                                    <div id="stock-alert" class="alert alert-warning d-none mt-2 mb-0">Una o más cantidades superan el stock disponible.</div>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                                        <button id="btn-submit-sale" type="submit" class="btn btn-dark">Guardar venta</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-
-                        <template id="empty-form-template">
-                            <tr class="formset-row">
-                                <td>{{ formset.empty_form.product }}</td>
-                                <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
-                                <td>{{ formset.empty_form.quantity }}</td>
-                                <td>{{ formset.empty_form.price }}</td>
-                                <td class="text-end align-middle"><span class="subtotal-display">0.00</span></td>
-                                <td class="text-center">
-                                    {{ formset.empty_form.DELETE }}
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
-                                </td>
-                                <td class="d-none">{{ formset.empty_form.id }}{{ formset.empty_form.ORDER }}</td>
-                            </tr>
-                        </template>
-
-                        {{ formset.management_form }}
                     </div>
 
-                    <div id="duplicate-alert" class="alert alert-danger d-none">No puedes repetir el mismo producto en una venta.</div>
-                    <div id="stock-alert" class="alert alert-warning d-none">Una o más cantidades superan el stock disponible.</div>
+                    <template id="empty-form-template">
+                        <tr class="formset-row">
+                            <td>
+                                <div class="product-display text-muted">Sin producto</div>
+                                <div class="d-none">{{ formset.empty_form.product }}</div>
+                            </td>
+                            <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
+                            <td>{{ formset.empty_form.quantity }}</td>
+                            <td>{{ formset.empty_form.price }}</td>
+                            <td class="text-end align-middle"><span class="subtotal-display">0.00</span></td>
+                            <td class="text-center">
+                                {{ formset.empty_form.DELETE }}
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
+                            </td>
+                            <td class="d-none">{{ formset.empty_form.id }}{{ formset.empty_form.ORDER }}</td>
+                        </tr>
+                    </template>
 
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button id="btn-submit-sale" type="submit" class="btn btn-dark">Guardar venta</button>
-                    </div>
+                    {{ formset.management_form }}
+
                 </form>
             </div>
         </div>
@@ -107,6 +177,65 @@
 
 {{ products_data|json_script:'products-data' }}
 
+<style>
+    .product-card {
+        border: 1px solid #dee2e6;
+        border-radius: .5rem;
+        overflow: hidden;
+        height: 100%;
+        transition: transform .15s ease, box-shadow .15s ease;
+        background: #fff;
+    }
+
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .35rem .9rem rgba(0, 0, 0, .12);
+    }
+
+    .product-card-image {
+        width: 100%;
+        height: 130px;
+        object-fit: contain;
+        padding: .5rem;
+        background: #f8f9fa;
+    }
+
+    .product-card-empty {
+        width: 100%;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+        background: #f8f9fa;
+    }
+
+    .product-card-body {
+        padding: .8rem;
+    }
+
+    .product-card-name {
+        font-weight: 600;
+        margin-bottom: .35rem;
+        min-height: 2.6em;
+    }
+
+    .product-card-meta {
+        font-size: .85rem;
+        color: #6c757d;
+        margin-bottom: .25rem;
+    }
+
+    .product-display {
+        font-weight: 500;
+        min-height: 1.5rem;
+    }
+
+    .row-hidden-empty {
+        display: none;
+    }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const productsData = JSON.parse(document.getElementById('products-data').textContent || '[]');
@@ -114,13 +243,151 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tbody = document.querySelector('.formset-tbody');
     const totalFormsInput = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
-    const addRowButton = document.getElementById('btn-add-row');
     const emptyTemplate = document.getElementById('empty-form-template');
     const submitButton = document.getElementById('btn-submit-sale');
     const duplicateAlert = document.getElementById('duplicate-alert');
     const stockAlert = document.getElementById('stock-alert');
+    const saleDetailEmpty = document.getElementById('sale-detail-empty');
+    const productCardList = document.getElementById('product-card-list');
+    const productSearchInput = document.getElementById('product-search');
+    const filterCategory = document.getElementById('filter-category');
+    const filterBrand = document.getElementById('filter-brand');
+    const filterSize = document.getElementById('filter-size');
+    const filterColor = document.getElementById('filter-color');
+    const filterStock = document.getElementById('filter-stock');
+    const resultCount = document.getElementById('product-result-count');
+    const productPagination = document.getElementById('product-pagination');
+    const productsPrevPage = document.getElementById('products-prev-page');
+    const productsNextPage = document.getElementById('products-next-page');
+    const productPageInfo = document.getElementById('product-page-info');
+
+    const productsPerPage = 8;
+    let currentProductsPage = 1;
+
+    function uniqueSortedValues(key) {
+        const values = Array.from(
+            new Set(
+                productsData
+                    .map(item => (item[key] || '').trim())
+                    .filter(Boolean)
+            )
+        );
+        return values.sort((a, b) => a.localeCompare(b));
+    }
+
+    function fillFilterOptions(selectElement, values) {
+        values.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            selectElement.appendChild(option);
+        });
+    }
+
+    function activeFilters() {
+        return {
+            search: (productSearchInput.value || '').trim().toLowerCase(),
+            category: filterCategory.value,
+            brand: filterBrand.value,
+            size: filterSize.value,
+            color: filterColor.value,
+            onlyStock: filterStock.checked,
+        };
+    }
+
+    function filterProducts() {
+        const filters = activeFilters();
+        return productsData.filter(product => {
+            if (filters.category && product.category !== filters.category) {
+                return false;
+            }
+            if (filters.brand && product.brand !== filters.brand) {
+                return false;
+            }
+            if (filters.size && product.size !== filters.size) {
+                return false;
+            }
+            if (filters.color && product.color !== filters.color) {
+                return false;
+            }
+            if (filters.onlyStock && product.stock <= 0) {
+                return false;
+            }
+            if (filters.search) {
+                const text = [
+                    product.name,
+                    product.brand,
+                    product.category,
+                    product.color,
+                    product.size,
+                ].join(' ').toLowerCase();
+                if (!text.includes(filters.search)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    function cardImage(product) {
+        if (product.image) {
+            return `<img src="${product.image}" class="product-card-image" alt="${product.name}">`;
+        }
+        return '<div class="product-card-empty"><i class="fas fa-image fa-2x"></i></div>';
+    }
+
+    function renderProductCards() {
+        const filtered = filterProducts();
+        const totalPages = Math.max(1, Math.ceil(filtered.length / productsPerPage));
+        currentProductsPage = Math.min(currentProductsPage, totalPages);
+        const startIndex = (currentProductsPage - 1) * productsPerPage;
+        const endIndex = startIndex + productsPerPage;
+        const pagedProducts = filtered.slice(startIndex, endIndex);
+
+        resultCount.textContent = `${filtered.length} producto(s) encontrado(s)`;
+
+        if (!filtered.length) {
+            productCardList.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">No hay productos con esos filtros.</div></div>';
+            productPagination.classList.add('d-none');
+            return;
+        }
+
+        productCardList.innerHTML = pagedProducts.map(product => {
+            const outOfStock = product.stock <= 0;
+            return `
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <div class="product-card">
+                        ${cardImage(product)}
+                        <div class="product-card-body">
+                            <div class="product-card-name">${product.name}</div>
+                            <div class="product-card-meta">${product.brand} · ${product.category}</div>
+                            <div class="product-card-meta">Color: ${product.color || '-'} · Talla: ${product.size || '-'}</div>
+                            <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+                                <span class="fw-bold">Bs ${parseFloat(product.price).toFixed(2)}</span>
+                                <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Stock: ${product.stock}</span>
+                            </div>
+                            <button type="button" class="btn btn-sm ${outOfStock ? 'btn-secondary' : 'btn-dark'} w-100 btn-add-product" data-product-id="${product.id}" ${outOfStock ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus me-1"></i> ${outOfStock ? 'Sin stock' : 'Agregar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        productPagination.classList.toggle('d-none', totalPages <= 1);
+        productsPrevPage.disabled = currentProductsPage === 1;
+        productsNextPage.disabled = currentProductsPage === totalPages;
+        productPageInfo.textContent = `Pagina ${currentProductsPage} de ${totalPages}`;
+    }
 
     function visibleRows() {
+        return Array.from(document.querySelectorAll('.formset-row')).filter(
+            r => !r.classList.contains('d-none') && !r.classList.contains('row-hidden-empty')
+        );
+    }
+
+    function availableRows() {
         return Array.from(document.querySelectorAll('.formset-row')).filter(r => !r.classList.contains('d-none'));
     }
 
@@ -128,6 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const productSelect = row.querySelector('select[name*="-product"]');
         const priceInput = row.querySelector('input[name*="-price"]');
         const stockBadge = row.querySelector('.stock-badge');
+        const productDisplay = row.querySelector('.product-display');
         if (!productSelect || !stockBadge) {
             return;
         }
@@ -135,10 +403,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const meta = productsMap.get(productSelect.value);
         if (!meta) {
             stockBadge.textContent = '-';
+            if (productDisplay) {
+                productDisplay.textContent = 'Sin producto';
+                productDisplay.classList.add('text-muted');
+            }
+            row.classList.add('row-hidden-empty');
             return;
         }
 
+        row.classList.remove('row-hidden-empty');
         stockBadge.textContent = meta.stock;
+        if (productDisplay) {
+            productDisplay.textContent = meta.name;
+            productDisplay.classList.remove('text-muted');
+        }
         if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
             priceInput.value = parseFloat(meta.price).toFixed(2);
         }
@@ -206,6 +484,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const okDup = validateDuplicates();
         const okStock = validateStock();
         submitButton.disabled = !(okDup && okStock);
+        if (saleDetailEmpty) {
+            saleDetailEmpty.classList.toggle('d-none', visibleRows().length > 0);
+        }
     }
 
     function addRow() {
@@ -217,8 +498,62 @@ document.addEventListener('DOMContentLoaded', function() {
         tbody.appendChild(row);
         totalFormsInput.value = idx + 1;
         hideDeleteInputs();
+        updateRowFromProduct(row);
         updateTotals();
         refreshValidation();
+    }
+
+    function setRowProduct(row, productId) {
+        const productSelect = row.querySelector('select[name*="-product"]');
+        const quantityInput = row.querySelector('input[name*="-quantity"]');
+        if (!productSelect) {
+            return;
+        }
+
+        productSelect.value = String(productId);
+        row.classList.remove('row-hidden-empty');
+        if (quantityInput && (!quantityInput.value || parseInt(quantityInput.value, 10) <= 0)) {
+            quantityInput.value = 1;
+        }
+
+        updateRowFromProduct(row);
+        updateTotals();
+        refreshValidation();
+    }
+
+    function addProductToSale(productId) {
+        const productKey = String(productId);
+
+        const existingRow = visibleRows().find(row => {
+            const productSelect = row.querySelector('select[name*="-product"]');
+            return productSelect && productSelect.value === productKey;
+        });
+
+        if (existingRow) {
+            const quantityInput = existingRow.querySelector('input[name*="-quantity"]');
+            const currentQty = parseInt(quantityInput.value || '0', 10);
+            quantityInput.value = currentQty > 0 ? currentQty + 1 : 1;
+            updateTotals();
+            refreshValidation();
+            return;
+        }
+
+        const emptyRow = availableRows().find(row => {
+            const productSelect = row.querySelector('select[name*="-product"]');
+            return productSelect && !productSelect.value;
+        });
+
+        if (emptyRow) {
+            setRowProduct(emptyRow, productKey);
+            return;
+        }
+
+        addRow();
+        const rows = visibleRows();
+        const newRow = rows[rows.length - 1];
+        if (newRow) {
+            setRowProduct(newRow, productKey);
+        }
     }
 
     function removeRow(button) {
@@ -265,9 +600,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (removeButton) {
             removeRow(removeButton);
         }
+
+        const addProductButton = e.target.closest('.btn-add-product');
+        if (addProductButton) {
+            addProductToSale(addProductButton.dataset.productId);
+        }
     });
 
-    addRowButton.addEventListener('click', addRow);
+    [productSearchInput, filterCategory, filterBrand, filterSize, filterColor, filterStock].forEach(el => {
+        const eventName = el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change';
+        el.addEventListener(eventName, function() {
+            currentProductsPage = 1;
+            renderProductCards();
+        });
+    });
+
+    productsPrevPage.addEventListener('click', function() {
+        if (currentProductsPage > 1) {
+            currentProductsPage -= 1;
+            renderProductCards();
+        }
+    });
+
+    productsNextPage.addEventListener('click', function() {
+        const totalPages = Math.max(1, Math.ceil(filterProducts().length / productsPerPage));
+        if (currentProductsPage < totalPages) {
+            currentProductsPage += 1;
+            renderProductCards();
+        }
+    });
+
+    fillFilterOptions(filterCategory, uniqueSortedValues('category'));
+    fillFilterOptions(filterBrand, uniqueSortedValues('brand'));
+    fillFilterOptions(filterSize, uniqueSortedValues('size'));
+    fillFilterOptions(filterColor, uniqueSortedValues('color'));
+    renderProductCards();
 
     document.querySelector('form').addEventListener('submit', function(e) {
         refreshValidation();
