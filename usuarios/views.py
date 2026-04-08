@@ -1,9 +1,10 @@
+from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, Sum
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 
@@ -13,6 +14,7 @@ from movimientos.models import InventoryMovement
 from productos.models import Product
 from compras.models import Purchase
 from ventas.models import Sale
+from .forms import ProfileForm
 from .models import Role, User
 
 
@@ -101,3 +103,16 @@ def dashboard_view(request):
 		)
 
 	return render(request, "usuarios/dashboard.html", context)
+
+
+@login_required
+def profile_view(request):
+	if request.method == "POST":
+		form = ProfileForm(request.POST, instance=request.user)
+		if form.is_valid():
+			form.save()
+			messages.success(request, "Perfil actualizado exitosamente.")
+			return redirect("usuarios:profile")
+	else:
+		form = ProfileForm(instance=request.user)
+	return render(request, "usuarios/profile.html", {"form": form})

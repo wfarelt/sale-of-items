@@ -12,13 +12,25 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Cliente</small><div class="fw-semibold">{{ sale.client.name }}</div></div></div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Vendedor</small><div class="fw-semibold">{% if sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</div></div></div>
+    </div>
+    <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Fecha</small><div class="fw-semibold">{{ sale.date|date:'d/m/Y H:i' }}</div></div></div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Estado</small>
+            {% if sale.status == 'confirmada' %}
+                <span class="badge text-bg-success">Confirmada</span>
+            {% else %}
+                <span class="badge text-bg-warning text-dark">Proforma</span>
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Pago</small><div class="fw-semibold">{{ sale.get_payment_type_display }}</div></div></div>
     </div>
 </div>
@@ -28,7 +40,9 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
+                    <th class="text-center" style="width:70px;">Item</th>
                     <th>Producto</th>
+                    <th>Codigo</th>
                     <th class="text-center">Cantidad</th>
                     <th class="text-end">Precio</th>
                     <th class="text-end">Subtotal</th>
@@ -37,17 +51,19 @@
             <tbody>
                 {% for detail in details %}
                 <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
                     <td>{{ detail.product.name }}</td>
+                    <td><span class="badge text-bg-light border text-dark">{{ detail.product.code|default:"-" }}</span></td>
                     <td class="text-center">{{ detail.quantity }}</td>
                     <td class="text-end">Bs {{ detail.price|floatformat:2 }}</td>
                     <td class="text-end fw-semibold">Bs {{ detail.subtotal|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Sin detalles.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-4">Sin detalles.</td></tr>
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr class="table-light"><th colspan="3" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
+                <tr class="table-light"><th colspan="5" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
             </tfoot>
         </table>
     </div>

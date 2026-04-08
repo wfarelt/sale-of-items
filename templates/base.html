@@ -84,7 +84,7 @@
                                         <li><a class="dropdown-item" href="{% url 'caja:list' %}"><i class="fas fa-wallet"></i> Caja</a></li>
                                     {% endif %}
                                 {% endif %}
-                                <li><a class="dropdown-item" href="{% url 'usuarios:password_change' %}"><i class="fas fa-key"></i> Cambiar contrasena</a></li>
+                                <li><a class="dropdown-item" href="{% url 'usuarios:profile' %}"><i class="fas fa-user-pen"></i> Mi perfil</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'usuarios:logout' %}" class="m-0">
@@ -135,7 +135,7 @@
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2026 Sistema de Venta de Artículos. Todos los derechos reservados.</p>
+        <p>&copy; Wfarel 2026 Sistema de Venta de Artículos. Todos los derechos reservados.</p>
     </footer>
 
     <!-- Bootstrap 5 JS Bundle -->

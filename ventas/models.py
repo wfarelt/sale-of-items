@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -12,8 +13,29 @@ class Sale(models.Model):
 		("transferencia", "Transferencia"),
 	)
 
+	STATUS_PROFORMA = "proforma"
+	STATUS_CONFIRMED = "confirmada"
+	STATUS_CHOICES = (
+		(STATUS_PROFORMA, "Proforma"),
+		(STATUS_CONFIRMED, "Confirmada"),
+	)
+
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
 	client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name="Cliente")
+	seller = models.ForeignKey(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		verbose_name="Vendedor",
+		related_name="sales",
+	)
+	status = models.CharField(
+		max_length=20,
+		choices=STATUS_CHOICES,
+		default=STATUS_CONFIRMED,
+		verbose_name="Estado",
+	)
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, verbose_name="Tipo de pago")
 	created_at = models.DateTimeField(auto_now_add=True)

@@ -7,13 +7,13 @@
     <div class="col-12 col-lg-10">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h4 mb-4">Registrar nueva venta</h1>
+                <h1 class="h4 mb-4">{% if is_edit %}Editar proforma #{{ object.id }}{% else %}Registrar nueva venta{% endif %}</h1>
 
                 <form method="post" novalidate>
                     {% csrf_token %}
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-8">
+                        <div class="col-md-5">
                             <label class="form-label" for="id_client">Cliente <span class="text-danger">*</span></label>
                             {{ form.client }}
                             <div class="text-danger small mt-1">{{ form.client.errors|striptags }}</div>
@@ -22,6 +22,11 @@
                             <label class="form-label" for="id_payment_type">Tipo de pago <span class="text-danger">*</span></label>
                             {{ form.payment_type }}
                             <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
                         </div>
                     </div>
 
@@ -142,7 +147,7 @@
 
                                     <div class="d-flex gap-2 mt-3">
                                         <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                                        <button id="btn-submit-sale" type="submit" class="btn btn-dark">Guardar venta</button>
+                                        <button id="btn-submit-sale" type="submit" class="btn btn-dark">Guardar</button>
                                     </div>
                                 </div>
                             </div>

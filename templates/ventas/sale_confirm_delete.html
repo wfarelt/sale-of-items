@@ -13,7 +13,13 @@
                     <p class="small text-muted mt-2 mb-0">Cliente: <strong>{{ object.client.name }}</strong></p>
                     <p class="small text-muted mb-0">Total: <strong>Bs {{ object.total|floatformat:2 }}</strong></p>
                 </div>
-                <p class="text-muted">Esta acción restaurará el stock de los productos vendidos.</p>
+                <p class="text-muted">
+                    {% if object.status == 'confirmada' %}
+                        Esta acción restaurará el stock de los productos vendidos.
+                    {% else %}
+                        Esta proforma no afectó el stock. Solo se eliminará el registro.
+                    {% endif %}
+                </p>
                 <form method="post" class="d-flex gap-2">
                     {% csrf_token %}
                     <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>

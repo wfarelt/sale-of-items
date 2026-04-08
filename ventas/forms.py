@@ -8,10 +8,11 @@ from .models import Sale, SaleDetail
 class SaleForm(forms.ModelForm):
 	class Meta:
 		model = Sale
-		fields = ["client", "payment_type"]
+		fields = ["client", "payment_type", "status"]
 		widgets = {
 			"client": forms.Select(attrs={"class": "form-select"}),
 			"payment_type": forms.Select(attrs={"class": "form-select"}),
+			"status": forms.Select(attrs={"class": "form-select"}),
 		}
 
 
@@ -46,9 +47,6 @@ class BaseSaleDetailFormSet(BaseInlineFormSet):
 				raise ValidationError("No puedes repetir el mismo producto en una venta.")
 
 			products_qty[product.pk] = quantity
-
-			if quantity > product.stock:
-				raise ValidationError(f"Stock insuficiente para {product.name}. Disponible: {product.stock}")
 
 
 SaleDetailFormSet = inlineformset_factory(
