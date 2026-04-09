@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from empresas.mixins import CompanyQuerysetMixin
 from .forms import ClientForm
 from .models import Client
 
@@ -15,7 +16,7 @@ class ClientAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return user.is_admin or user.is_vendedor
 
 
-class ClientListView(ClientAccessMixin, ListView):
+class ClientListView(ClientAccessMixin, CompanyQuerysetMixin, ListView):
 	model = Client
 	template_name = "clientes/client_list.html"
 	context_object_name = "clients"
@@ -41,21 +42,21 @@ class ClientListView(ClientAccessMixin, ListView):
 		return context
 
 
-class ClientCreateView(ClientAccessMixin, CreateView):
+class ClientCreateView(ClientAccessMixin, CompanyQuerysetMixin, CreateView):
 	model = Client
 	form_class = ClientForm
 	template_name = "clientes/client_form.html"
 	success_url = reverse_lazy("clientes:list")
 
 
-class ClientUpdateView(ClientAccessMixin, UpdateView):
+class ClientUpdateView(ClientAccessMixin, CompanyQuerysetMixin, UpdateView):
 	model = Client
 	form_class = ClientForm
 	template_name = "clientes/client_form.html"
 	success_url = reverse_lazy("clientes:list")
 
 
-class ClientDeleteView(ClientAccessMixin, DeleteView):
+class ClientDeleteView(ClientAccessMixin, CompanyQuerysetMixin, DeleteView):
 	model = Client
 	template_name = "clientes/client_confirm_delete.html"
 	success_url = reverse_lazy("clientes:list")
@@ -69,3 +70,4 @@ class ClientDeleteView(ClientAccessMixin, DeleteView):
 		else:
 			messages.warning(request, "Cliente desactivado correctamente.")
 		return redirect(self.success_url)
+

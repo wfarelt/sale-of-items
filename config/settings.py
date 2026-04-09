@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     
     # Local apps
+    'empresas',
     'usuarios',
     'clientes',
     'productos',
@@ -60,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'empresas.middleware.CompanyMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

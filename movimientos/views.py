@@ -2,6 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.views.generic import DetailView, ListView
 
+from empresas.mixins import CompanyQuerysetMixin
 from productos.models import Product
 
 from .models import InventoryMovement
@@ -12,14 +13,14 @@ class InventoryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return self.request.user.is_admin or self.request.user.is_almacen
 
 
-class InventoryMovementListView(InventoryAccessMixin, ListView):
+class InventoryMovementListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 	model = InventoryMovement
 	template_name = "movimientos/movement_list.html"
 	context_object_name = "movements"
 	paginate_by = 25
 
 	def get_queryset(self):
-		queryset = InventoryMovement.objects.prefetch_related("details__product")
+		queryset = super().get_queryset().prefetch_related("details__product")
 		search = self.request.GET.get("q", "").strip()
 		movement_type = self.request.GET.get("type", "").strip()
 		product_id = self.request.GET.get("product", "").strip()
@@ -45,16 +46,21 @@ class InventoryMovementListView(InventoryAccessMixin, ListView):
 		context["search_query"] = self.request.GET.get("q", "")
 		context["selected_type"] = self.request.GET.get("type", "")
 		context["selected_product"] = self.request.GET.get("product", "")
-		context["products"] = Product.objects.order_by("name")
+		company = self.request.company
+		products_qs = Product.objects.order_by("name")
+		if company:
+			products_qs = products_qs.filter(company=company)
+		context["products"] = products_qs
 		for movement in context["movements"]:
 			movement.total_quantity_value = movement.total_quantity()
 		return context
 
 
-class InventoryMovementDetailView(InventoryAccessMixin, DetailView):
+class InventoryMovementDetailView(InventoryAccessMixin, CompanyQuerysetMixin, DetailView):
 	model = InventoryMovement
 	template_name = "movimientos/movement_detail.html"
 	context_object_name = "movement"
 
 	def get_queryset(self):
-		return InventoryMovement.objects.prefetch_related("details__product")
+		return super().get_queryset().prefetch_related("details__product")
+

@@ -25,12 +25,19 @@ class RoleAdmin(admin.ModelAdmin):
 class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Información adicional', {
-            'fields': ('role', 'phone', 'address', 'avatar', 'created_at', 'updated_at'),
+            'fields': ('company', 'role', 'phone', 'address', 'avatar', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        ('Información adicional', {
+            'fields': ('company', 'role', 'phone', 'address', 'avatar'),
+            'classes': ('wide',),
+        }),
+    )
     
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'created_at')
-    list_filter = ('role', 'is_active', 'created_at')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'company', 'role', 'is_active', 'created_at')
+    list_filter = ('company', 'role', 'is_active', 'created_at')
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'company__name')
     readonly_fields = ('created_at', 'updated_at')

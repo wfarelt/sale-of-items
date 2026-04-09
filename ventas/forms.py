@@ -7,8 +7,12 @@ from .models import Sale, SaleDetail
 
 class SaleForm(forms.ModelForm):
 	def __init__(self, *args, **kwargs):
+		self.company = kwargs.pop("company", None)
 		super().__init__(*args, **kwargs)
-		self.fields["client"].queryset = self.fields["client"].queryset.filter(is_active=True)
+		client_qs = self.fields["client"].queryset.filter(is_active=True)
+		if self.company:
+			client_qs = client_qs.filter(company=self.company)
+		self.fields["client"].queryset = client_qs
 		self.fields["status"].choices = [
 			(Sale.STATUS_PROFORMA, "Proforma"),
 			(Sale.STATUS_CONFIRMED, "Confirmada"),

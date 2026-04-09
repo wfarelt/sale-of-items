@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from productos.models import Product
 
 
 class Purchase(models.Model):
@@ -11,6 +10,12 @@ class Purchase(models.Model):
 	)
 
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
+	company = models.ForeignKey(
+		'empresas.Company',
+		on_delete=models.CASCADE,
+		verbose_name='Empresa',
+		related_name='purchases',
+	)
 	supplier = models.CharField(max_length=200, verbose_name="Proveedor")
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendiente", verbose_name="Estado")
@@ -56,6 +61,7 @@ class Purchase(models.Model):
 			reference=f"Compra #{self.pk}",
 			description=f"Ingreso por compra al proveedor {self.supplier}",
 			details=movement_details,
+			company=self.company,
 		)
 
 	def revert_inventory_update(self):
@@ -79,12 +85,13 @@ class Purchase(models.Model):
 			reference=f"Eliminación compra #{self.pk}",
 			description=f"Reversa de compra del proveedor {self.supplier}",
 			details=movement_details,
+			company=self.company,
 		)
 
 
 class PurchaseDetail(models.Model):
 	purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, verbose_name="Compra")
-	product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="Producto")
+	product = models.ForeignKey('productos.Product', on_delete=models.PROTECT, verbose_name="Producto")
 	quantity = models.PositiveIntegerField(verbose_name="Cantidad")
 	cost_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio unitario")
 	sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio de venta")

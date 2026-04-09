@@ -9,11 +9,24 @@ sys.path.insert(0, os.path.dirname(__file__))
 django.setup()
 
 # Importar después de django.setup()
+from empresas.models import Company
 from usuarios.models import Role, User
 from django.contrib.auth.hashers import make_password
 
+# Crear Empresa demo
+print("Creando empresa demo...")
+company, created = Company.objects.get_or_create(
+    name='Empresa Demo',
+    defaults={
+        'ruc_nit': '1234567890',
+        'address': 'Av. Principal 123',
+        'phone': '70000000',
+    }
+)
+print(f"✓ Empresa {'creada' if created else 'ya existía'}: {company.name}")
+
 # Crear Roles
-print("Creando roles...")
+print("\nCreando roles...")
 admin_role, created = Role.objects.get_or_create(
     name='admin',
     defaults={
@@ -38,7 +51,7 @@ almacen_role, created = Role.objects.get_or_create(
 )
 print(f"✓ Rol Almacén {'creado' if created else 'ya existía'}")
 
-# Crear superusuario
+# Crear superusuario (sin empresa — acceso global)
 print("\nCreando usuarios de prueba...")
 superuser, created = User.objects.update_or_create(
     username='superadmin',
@@ -47,6 +60,7 @@ superuser, created = User.objects.update_or_create(
         'first_name': 'Super',
         'last_name': 'Usuario',
         'role': admin_role,
+        'company': None,
         'is_staff': True,
         'is_superuser': True,
         'is_active': True,
@@ -55,7 +69,7 @@ superuser, created = User.objects.update_or_create(
 )
 print(f"✓ Superusuario {'creado' if created else 'actualizado'} - Contraseña: superadmin123")
 
-# Crear usuario administrador operativo
+# Crear usuario administrador operativo (con empresa)
 admin_user, created = User.objects.update_or_create(
     username='admin',
     defaults={
@@ -63,6 +77,7 @@ admin_user, created = User.objects.update_or_create(
         'first_name': 'Administrador',
         'last_name': 'Operativo',
         'role': admin_role,
+        'company': company,
         'is_staff': False,
         'is_superuser': False,
         'is_active': True,
@@ -79,6 +94,7 @@ vendedor_user, created = User.objects.update_or_create(
         'first_name': 'Juan',
         'last_name': 'Vendedor',
         'role': vendedor_role,
+        'company': company,
         'is_active': True,
         'password': make_password('vendedor123')
     }
@@ -93,6 +109,7 @@ almacen_user, created = User.objects.update_or_create(
         'first_name': 'Pedro',
         'last_name': 'Almacén',
         'role': almacen_role,
+        'company': company,
         'is_active': True,
         'password': make_password('almacen123')
     }
@@ -102,17 +119,13 @@ print(f"✓ Usuario Almacén {'creado' if created else 'actualizado'} - Contrase
 print("\n" + "="*50)
 print("✅ DATOS INICIALES CREADOS EXITOSAMENTE")
 print("="*50)
+print(f"\n🏢 Empresa demo: {company.name}")
 print("\n📝 Credenciales de acceso al panel admin:")
 print("   URL: http://localhost:8000/admin/")
-print("\n   Superusuario:")
+print("\n   Superusuario (acceso global, sin empresa):")
 print("   → Usuario: superadmin")
 print("   → Contraseña: superadmin123")
-print("\n   Admin:")
-print("   → Usuario: admin")
-print("   → Contraseña: admin123")
-print("\n   Vendedor:")
-print("   → Usuario: vendedor")
-print("   → Contraseña: vendedor123")
-print("\n   Almacén:")
-print("   → Usuario: almacen")
-print("   → Contraseña: almacen123")
+print(f"\n   Usuarios de la empresa '{company.name}':")
+print("   → admin / admin123")
+print("   → vendedor / vendedor123")
+print("   → almacen / almacen123")

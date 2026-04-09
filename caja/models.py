@@ -35,6 +35,12 @@ class CashBox(models.Model):
 		(PAYMENT_METHOD_NA, "No aplica"),
 	)
 
+	company = models.ForeignKey(
+		"empresas.Company",
+		on_delete=models.CASCADE,
+		verbose_name="Empresa",
+		related_name="cashbox_entries",
+	)
 	date = models.DateTimeField(default=timezone.now, verbose_name="Fecha")
 	type = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name="Tipo")
 	amount = models.DecimalField(
@@ -63,7 +69,7 @@ class CashBox(models.Model):
 		return f"{self.get_type_display()} - Bs {self.amount:.2f}"
 
 	def clean(self):
-		self.validate_day_open(self.date)
+		self.validate_day_open(self.date, self.company)
 
 	@staticmethod
 	def resolve_business_date(entry_date=None):
@@ -75,16 +81,20 @@ class CashBox(models.Model):
 		return entry_date
 
 	@classmethod
-	def validate_day_open(cls, entry_date=None):
+	def validate_day_open(cls, entry_date=None, company=None):
 		business_date = cls.resolve_business_date(entry_date)
-		if CashBoxClosure.objects.filter(date=business_date, is_closed=True).exists():
+		qs = CashBoxClosure.objects.filter(date=business_date, is_closed=True)
+		if company is not None:
+			qs = qs.filter(company=company)
+		if qs.exists():
 			raise ValidationError(f"La caja del {business_date.strftime('%d/%m/%Y')} ya fue cerrada.")
 		return business_date
 
 	@classmethod
-	def create_entry(cls, *, entry_type, amount, description, reference, date=None, payment_method=None):
-		cls.validate_day_open(date)
+	def create_entry(cls, *, entry_type, amount, description, reference, company, date=None, payment_method=None):
+		cls.validate_day_open(date, company)
 		return cls.objects.create(
+			company=company,
 			date=date or timezone.now(),
 			type=entry_type,
 			amount=amount,
@@ -100,6 +110,7 @@ class CashBox(models.Model):
 			amount=sale.total,
 			description=f"Ingreso por venta #{sale.pk} al cliente {sale.client.name}",
 			reference=cls.REFERENCE_SALE,
+			company=sale.company,
 			date=sale.date,
 			payment_method=sale.payment_type,
 		)
@@ -111,6 +122,7 @@ class CashBox(models.Model):
 			amount=sale.total,
 			description=f"Reversion de ingreso por eliminacion de venta #{sale.pk}",
 			reference=cls.REFERENCE_SALE,
+			company=sale.company,
 			payment_method=sale.payment_type,
 		)
 
@@ -121,6 +133,7 @@ class CashBox(models.Model):
 			amount=purchase.total,
 			description=f"Egreso por compra #{purchase.pk} al proveedor {purchase.supplier}",
 			reference=cls.REFERENCE_PURCHASE,
+			company=purchase.company,
 			date=purchase.date,
 		)
 
@@ -131,11 +144,18 @@ class CashBox(models.Model):
 			amount=purchase.total,
 			description=f"Reversion de egreso por eliminacion de compra #{purchase.pk}",
 			reference=cls.REFERENCE_PURCHASE,
+			company=purchase.company,
 		)
 
 
 class CashBoxClosure(models.Model):
-	date = models.DateField(unique=True, verbose_name="Fecha")
+	company = models.ForeignKey(
+		"empresas.Company",
+		on_delete=models.CASCADE,
+		verbose_name="Empresa",
+		related_name="cashbox_closures",
+	)
+	date = models.DateField(verbose_name="Fecha")
 	opening_balance = models.DecimalField(
 		max_digits=12,
 		decimal_places=2,
@@ -155,6 +175,7 @@ class CashBoxClosure(models.Model):
 		ordering = ["-date"]
 		verbose_name = "Cierre diario de caja"
 		verbose_name_plural = "Cierres diarios de caja"
+		unique_together = [("company", "date")]
 
 	def __str__(self):
 		return f"Caja {self.date.strftime('%d/%m/%Y')}"
@@ -164,22 +185,22 @@ class CashBoxClosure(models.Model):
 		return self.opening_balance + self.total_income - self.total_expense
 
 	@classmethod
-	def get_suggested_opening_balance(cls, target_date):
-		previous_closure = cls.objects.filter(date__lt=target_date, is_closed=True).order_by("-date").first()
+	def get_suggested_opening_balance(cls, target_date, company):
+		previous_closure = cls.objects.filter(company=company, date__lt=target_date, is_closed=True).order_by("-date").first()
 		if previous_closure:
 			return previous_closure.closing_balance
 
-		previous_day = cls.objects.filter(date__lt=target_date).order_by("-date").first()
+		previous_day = cls.objects.filter(company=company, date__lt=target_date).order_by("-date").first()
 		if previous_day:
 			return previous_day.closing_balance or previous_day.opening_balance
 
 		return Decimal("0.00")
 
 	@classmethod
-	def get_day_summary(cls, target_date):
-		closure = cls.objects.filter(date=target_date).first()
-		opening_balance = closure.opening_balance if closure else cls.get_suggested_opening_balance(target_date)
-		entries = CashBox.objects.filter(date__date=target_date)
+	def get_day_summary(cls, target_date, company):
+		closure = cls.objects.filter(company=company, date=target_date).first()
+		opening_balance = closure.opening_balance if closure else cls.get_suggested_opening_balance(target_date, company)
+		entries = CashBox.objects.filter(company=company, date__date=target_date)
 		income_total = entries.filter(type=CashBox.TYPE_INCOME).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 		expense_total = entries.filter(type=CashBox.TYPE_EXPENSE).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 		current_balance = opening_balance + income_total - expense_total
@@ -195,8 +216,9 @@ class CashBoxClosure(models.Model):
 		}
 
 	@classmethod
-	def set_opening_balance(cls, *, target_date, opening_balance):
+	def set_opening_balance(cls, *, target_date, opening_balance, company):
 		closure, _ = cls.objects.get_or_create(
+			company=company,
 			date=target_date,
 			defaults={
 				"opening_balance": opening_balance,
@@ -211,7 +233,7 @@ class CashBoxClosure(models.Model):
 		return closure
 
 	def refresh_totals(self, save=False):
-		summary = self.get_day_summary(self.date)
+		summary = self.get_day_summary(self.date, self.company)
 		self.total_income = summary["income_total"]
 		self.total_expense = summary["expense_total"]
 		self.closing_balance = summary["current_balance"]

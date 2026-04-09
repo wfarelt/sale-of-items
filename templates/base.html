@@ -54,7 +54,12 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'usuarios:dashboard' %}">
-                <i class="fas fa-store"></i> Venta Artículos
+                <i class="fas fa-store"></i>
+                {% if request.company %}
+                    {{ request.company.name }}
+                {% else %}
+                    Venta Articulos
+                {% endif %}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

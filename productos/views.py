@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from empresas.mixins import CompanyQuerysetMixin
 from .forms import BrandForm, CategoryForm, ProductForm
 from .models import Brand, Category, Product
 
@@ -15,7 +16,7 @@ class InventoryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return user.is_admin or user.is_almacen
 
 
-class ProductListView(InventoryAccessMixin, ListView):
+class ProductListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 	model = Product
 	template_name = "productos/product_list.html"
 	context_object_name = "products"
@@ -42,7 +43,7 @@ class ProductListView(InventoryAccessMixin, ListView):
 		return context
 
 
-class ProductCreateView(InventoryAccessMixin, CreateView):
+class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
@@ -51,10 +52,11 @@ class ProductCreateView(InventoryAccessMixin, CreateView):
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()
 		kwargs["user"] = self.request.user
+		kwargs["company"] = self.request.company
 		return kwargs
 
 
-class ProductUpdateView(InventoryAccessMixin, UpdateView):
+class ProductUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
@@ -63,10 +65,11 @@ class ProductUpdateView(InventoryAccessMixin, UpdateView):
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()
 		kwargs["user"] = self.request.user
+		kwargs["company"] = self.request.company
 		return kwargs
 
 
-class ProductDeleteView(InventoryAccessMixin, DeleteView):
+class ProductDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
 	model = Product
 	template_name = "productos/product_confirm_delete.html"
 	success_url = reverse_lazy("productos:list")
@@ -82,27 +85,27 @@ class ProductDeleteView(InventoryAccessMixin, DeleteView):
 		return redirect(self.success_url)
 
 
-class CategoryListView(InventoryAccessMixin, ListView):
+class CategoryListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 	model = Category
 	template_name = "productos/category_list.html"
 	context_object_name = "categories"
 
 
-class CategoryCreateView(InventoryAccessMixin, CreateView):
+class CategoryCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 	model = Category
 	form_class = CategoryForm
 	template_name = "productos/category_form.html"
 	success_url = reverse_lazy("productos:categories")
 
 
-class CategoryUpdateView(InventoryAccessMixin, UpdateView):
+class CategoryUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
 	model = Category
 	form_class = CategoryForm
 	template_name = "productos/category_form.html"
 	success_url = reverse_lazy("productos:categories")
 
 
-class CategoryDeleteView(InventoryAccessMixin, DeleteView):
+class CategoryDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
 	model = Category
 	template_name = "productos/category_confirm_delete.html"
 	success_url = reverse_lazy("productos:categories")
@@ -118,27 +121,28 @@ class CategoryDeleteView(InventoryAccessMixin, DeleteView):
 		return redirect(self.success_url)
 
 
-class BrandListView(InventoryAccessMixin, ListView):
+
+class BrandListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 	model = Brand
 	template_name = "productos/brand_list.html"
 	context_object_name = "brands"
 
 
-class BrandCreateView(InventoryAccessMixin, CreateView):
+class BrandCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 	model = Brand
 	form_class = BrandForm
 	template_name = "productos/brand_form.html"
 	success_url = reverse_lazy("productos:brands")
 
 
-class BrandUpdateView(InventoryAccessMixin, UpdateView):
+class BrandUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
 	model = Brand
 	form_class = BrandForm
 	template_name = "productos/brand_form.html"
 	success_url = reverse_lazy("productos:brands")
 
 
-class BrandDeleteView(InventoryAccessMixin, DeleteView):
+class BrandDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
 	model = Brand
 	template_name = "productos/brand_confirm_delete.html"
 	success_url = reverse_lazy("productos:brands")

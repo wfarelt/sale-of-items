@@ -2,9 +2,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from clientes.models import Client
-from productos.models import Product
-
 
 class Sale(models.Model):
 	PAYMENT_TYPE_CHOICES = (
@@ -23,7 +20,13 @@ class Sale(models.Model):
 	)
 
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
-	client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name="Cliente")
+	company = models.ForeignKey(
+		'empresas.Company',
+		on_delete=models.CASCADE,
+		verbose_name='Empresa',
+		related_name='sales',
+	)
+	client = models.ForeignKey("clientes.Client", on_delete=models.PROTECT, verbose_name="Cliente")
 	seller = models.ForeignKey(
 		settings.AUTH_USER_MODEL,
 		on_delete=models.PROTECT,
@@ -85,6 +88,7 @@ class Sale(models.Model):
 			reference=f"Venta #{self.pk}",
 			description=f"Salida por venta al cliente {self.client.name}",
 			details=movement_details,
+			company=self.company,
 		)
 
 	def restore_inventory_output(self):
@@ -102,12 +106,13 @@ class Sale(models.Model):
 			reference=f"Anulación venta #{self.pk}",
 			description=f"Reversa por anulación de venta al cliente {self.client.name}",
 			details=movement_details,
+			company=self.company,
 		)
 
 
 class SaleDetail(models.Model):
 	sale = models.ForeignKey(Sale, on_delete=models.CASCADE, verbose_name="Venta")
-	product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="Producto")
+	product = models.ForeignKey("productos.Product", on_delete=models.PROTECT, verbose_name="Producto")
 	quantity = models.PositiveIntegerField(verbose_name="Cantidad")
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
 

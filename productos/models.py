@@ -2,26 +2,40 @@ from django.db import models
 
 
 class Category(models.Model):
-	name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+	company = models.ForeignKey(
+		'empresas.Company',
+		on_delete=models.CASCADE,
+		verbose_name='Empresa',
+		related_name='categories',
+	)
+	name = models.CharField(max_length=100, verbose_name="Nombre")
 	is_active = models.BooleanField(default=True, verbose_name="Activo")
 
 	class Meta:
 		ordering = ["name"]
 		verbose_name = "Categoria"
 		verbose_name_plural = "Categorias"
+		unique_together = [('company', 'name')]
 
 	def __str__(self):
 		return self.name
 
 
 class Brand(models.Model):
-	name = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
+	company = models.ForeignKey(
+		'empresas.Company',
+		on_delete=models.CASCADE,
+		verbose_name='Empresa',
+		related_name='brands',
+	)
+	name = models.CharField(max_length=100, verbose_name="Nombre")
 	is_active = models.BooleanField(default=True, verbose_name="Activo")
 
 	class Meta:
 		ordering = ["name"]
 		verbose_name = "Marca"
 		verbose_name_plural = "Marcas"
+		unique_together = [('company', 'name')]
 
 	def __str__(self):
 		return self.name
@@ -37,7 +51,13 @@ class Product(models.Model):
 		("XXL", "XXL"),
 	)
 
-	code = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="Código")
+	company = models.ForeignKey(
+		'empresas.Company',
+		on_delete=models.CASCADE,
+		verbose_name='Empresa',
+		related_name='products',
+	)
+	code = models.CharField(max_length=50, null=True, blank=True, verbose_name="Código")
 	name = models.CharField(max_length=150, verbose_name="Nombre")
 	description = models.TextField(blank=True, verbose_name="Descripcion")
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
@@ -55,6 +75,8 @@ class Product(models.Model):
 		ordering = ["name"]
 		verbose_name = "Producto"
 		verbose_name_plural = "Productos"
+		unique_together = [('company', 'code')]
 
 	def __str__(self):
 		return self.name
+

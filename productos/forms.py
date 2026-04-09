@@ -38,9 +38,15 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
+        self.company = kwargs.pop("company", None)
         super().__init__(*args, **kwargs)
-        self.fields["brand"].queryset = Brand.objects.filter(is_active=True).order_by("name")
-        self.fields["category"].queryset = Category.objects.filter(is_active=True).order_by("name")
+        brand_qs = Brand.objects.filter(is_active=True).order_by("name")
+        category_qs = Category.objects.filter(is_active=True).order_by("name")
+        if self.company:
+            brand_qs = brand_qs.filter(company=self.company)
+            category_qs = category_qs.filter(company=self.company)
+        self.fields["brand"].queryset = brand_qs
+        self.fields["category"].queryset = category_qs
 
         user_can_manage_values = bool(
             self.user and self.user.is_authenticated and (self.user.is_admin or self.user.is_almacen)
