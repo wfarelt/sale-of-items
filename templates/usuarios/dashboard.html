@@ -45,6 +45,16 @@
         font-size: .65rem;
         vertical-align: middle;
     }
+    .sales-chart-card {
+        overflow: hidden;
+    }
+    .sales-chart-wrap {
+        position: relative;
+        min-height: 280px;
+    }
+    .sales-chart-note {
+        font-size: .78rem;
+    }
 </style>
 {% endblock %}
 
@@ -349,9 +359,21 @@
     </div>
 
 <div class="row g-3 mt-1">
-    {# Placeholder para grafico futuro #}
     <div class="col-12 col-md-6">
-        <div class="card border-0 shadow-sm h-100" id="chart-placeholder">
+        <div class="card border-0 shadow-sm h-100 sales-chart-card">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <span class="section-title text-muted">Ventas ultima semana</span>
+                <span class="badge text-bg-light border">Confirmadas</span>
+            </div>
+            <div class="card-body">
+                <div class="sales-chart-wrap">
+                    <canvas id="weekly-sales-chart"></canvas>
+                </div>
+                <div class="d-flex justify-content-between mt-3 sales-chart-note text-muted">
+                    <span>Tendencia diaria de ingresos</span>
+                    <span>Ultimos 7 dias</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -609,6 +631,86 @@
     </div>
 </div>
 
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if request.user.is_admin %}
+    {{ weekly_sales_labels|json_script:"weekly-sales-labels" }}
+    {{ weekly_sales_amounts|json_script:"weekly-sales-amounts" }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('weekly-sales-chart');
+        if (!canvas || typeof Chart === 'undefined') {
+            return;
+        }
+
+        const labels = JSON.parse(document.getElementById('weekly-sales-labels').textContent || '[]');
+        const amounts = JSON.parse(document.getElementById('weekly-sales-amounts').textContent || '[]');
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.28)');
+        gradient.addColorStop(1, 'rgba(13, 110, 253, 0.02)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas (Bs)',
+                    data: amounts,
+                    borderColor: '#0d6efd',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw || 0;
+                                return 'Bs ' + Number(value).toFixed(2);
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(33, 37, 41, 0.08)',
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'Bs ' + Number(value).toFixed(0);
+                            },
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                    },
+                },
+            },
+        });
+    });
+    </script>
 {% endif %}
 {% endblock %}
 

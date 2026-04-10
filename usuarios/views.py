@@ -1,9 +1,12 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -67,6 +70,28 @@ def dashboard_view(request):
 		)
 	elif user.is_admin:
 		now = timezone.localtime()
+		week_start_date = now.date() - timedelta(days=6)
+		sales_last_week_qs = (
+			Sale.objects.filter(
+				company=company,
+				status=Sale.STATUS_CONFIRMED,
+				date__date__gte=week_start_date,
+			)
+			.annotate(day=TruncDate("date"))
+			.values("day")
+			.annotate(total=Sum("total"))
+		)
+		sales_by_day = {
+			entry["day"]: float(entry["total"] or 0)
+			for entry in sales_last_week_qs
+		}
+		weekly_labels = []
+		weekly_amounts = []
+		for offset in range(7):
+			day = week_start_date + timedelta(days=offset)
+			weekly_labels.append(day.strftime("%a %d/%m"))
+			weekly_amounts.append(round(sales_by_day.get(day, 0), 2))
+
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
@@ -84,6 +109,8 @@ def dashboard_view(request):
 				"cash_entries_total": CashBox.objects.filter(company=company).count(),
 				"cash_income_month": CashBox.objects.filter(company=company, type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"cash_expense_month": CashBox.objects.filter(company=company, type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
+				"weekly_sales_labels": weekly_labels,
+				"weekly_sales_amounts": weekly_amounts,
 			}
 		)
 		context["cash_balance_month"] = context["cash_income_month"] - context["cash_expense_month"]
