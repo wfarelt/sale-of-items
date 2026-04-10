@@ -17,6 +17,8 @@ class SaleForm(forms.ModelForm):
 			(Sale.STATUS_PROFORMA, "Proforma"),
 			(Sale.STATUS_CONFIRMED, "Confirmada"),
 		]
+		if not self.instance.pk:
+			self.fields["status"].initial = Sale.STATUS_PROFORMA
 
 	class Meta:
 		model = Sale

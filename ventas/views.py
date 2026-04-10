@@ -103,6 +103,7 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
+				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
 				"stock": product.stock,
@@ -181,6 +182,7 @@ class SaleUpdateView(SalesAccessMixin, CompanyQuerysetMixin, UpdateView):
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
+				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
 				"stock": product.stock,
@@ -321,6 +323,7 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
+				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
 				"stock": product.stock,
@@ -392,6 +395,7 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
+				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
 				"stock": product.stock,

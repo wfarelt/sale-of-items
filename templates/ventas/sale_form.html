@@ -12,34 +12,16 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-5">
-                            <label class="form-label" for="id_client">Cliente <span class="text-danger">*</span></label>
-                            {{ form.client }}
-                            <div class="text-danger small mt-1">{{ form.client.errors|striptags }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="id_payment_type">Tipo de pago <span class="text-danger">*</span></label>
-                            {{ form.payment_type }}
-                            <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
-                            {{ form.status }}
-                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
-                        </div>
-                    </div>
-
                     <div class="row g-4 mb-3">
                         <div class="col-12 col-xl-7">
                             <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
 
-                            <div class="card border h-100">
+                            <div class="card border product-panel-card">
                                 <div class="card-body">
                                     <div class="row g-2 align-items-end mb-3">
                                         <div class="col-md-6">
                                             <label for="product-search" class="form-label">Buscar producto</label>
-                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, marca, color, categoria...">
+                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, código, marca, color, categoria...">
                                         </div>
                                         <div class="col-md-3">
                                             <label for="filter-category" class="form-label">Categoria</label>
@@ -95,6 +77,68 @@
 
                             <div class="card border sale-detail-panel">
                                 <div class="card-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-12">
+                                            <label class="form-label" for="id_client">Cliente <span class="text-danger">*</span></label>
+                                            <div
+                                                id="client-search-box"
+                                                class="position-relative"
+                                                data-lookup-url="{% url 'clientes:lookup' %}"
+                                                data-quick-create-url="{% url 'clientes:quick_create' %}"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    id="client-search"
+                                                    class="form-control"
+                                                    placeholder="Busca por nombre, NIT/CI, telefono o correo..."
+                                                    autocomplete="off"
+                                                >
+                                                <div id="client-search-results" class="list-group position-absolute w-100 mt-1 d-none" style="z-index: 1030;"></div>
+                                            </div>
+                                            <div class="d-flex gap-2 mt-2">
+                                                <button type="button" id="btn-client-clear" class="btn btn-sm btn-outline-secondary">Limpiar</button>
+                                                <button type="button" id="btn-client-quick-create" class="btn btn-sm btn-outline-dark">Nuevo cliente rapido</button>
+                                            </div>
+                                            <div id="client-quick-create" class="border rounded p-2 mt-2 d-none bg-light-subtle">
+                                                <div class="row g-2">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label mb-1" for="quick-client-name">Nombre *</label>
+                                                        <input type="text" id="quick-client-name" class="form-control form-control-sm">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label mb-1" for="quick-client-nit">NIT/CI *</label>
+                                                        <input type="text" id="quick-client-nit" class="form-control form-control-sm">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label mb-1" for="quick-client-phone">Telefono</label>
+                                                        <input type="text" id="quick-client-phone" class="form-control form-control-sm">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label mb-1" for="quick-client-email">Correo</label>
+                                                        <input type="email" id="quick-client-email" class="form-control form-control-sm">
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2 mt-2">
+                                                    <button type="button" id="btn-client-quick-save" class="btn btn-sm btn-dark">Guardar cliente</button>
+                                                    <button type="button" id="btn-client-quick-cancel" class="btn btn-sm btn-outline-secondary">Cancelar</button>
+                                                </div>
+                                                <div id="client-quick-create-feedback" class="small mt-2"></div>
+                                            </div>
+                                            <div class="d-none">{{ form.client }}</div>
+                                            <div class="text-danger small mt-1">{{ form.client.errors|striptags }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label" for="id_payment_type">Tipo de pago <span class="text-danger">*</span></label>
+                                            {{ form.payment_type }}
+                                            <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
+                                            {{ form.status }}
+                                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
+                                        </div>
+                                    </div>
+
                                     {% if formset.non_form_errors %}
                                         <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
                                     {% endif %}
@@ -265,6 +309,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const productsPrevPage = document.getElementById('products-prev-page');
     const productsNextPage = document.getElementById('products-next-page');
     const productPageInfo = document.getElementById('product-page-info');
+    const clientSelect = document.getElementById('id_client');
+    const clientSearchBox = document.getElementById('client-search-box');
+    const clientSearchInput = document.getElementById('client-search');
+    const clientSearchResults = document.getElementById('client-search-results');
+    const clientClearButton = document.getElementById('btn-client-clear');
+    const clientQuickCreateToggle = document.getElementById('btn-client-quick-create');
+    const clientQuickCreateBox = document.getElementById('client-quick-create');
+    const clientQuickSaveButton = document.getElementById('btn-client-quick-save');
+    const clientQuickCancelButton = document.getElementById('btn-client-quick-cancel');
+    const clientQuickFeedback = document.getElementById('client-quick-create-feedback');
+    const quickClientName = document.getElementById('quick-client-name');
+    const quickClientNit = document.getElementById('quick-client-nit');
+    const quickClientPhone = document.getElementById('quick-client-phone');
+    const quickClientEmail = document.getElementById('quick-client-email');
+
+    const clientLookupUrl = clientSearchBox ? clientSearchBox.dataset.lookupUrl : '';
+    const clientQuickCreateUrl = clientSearchBox ? clientSearchBox.dataset.quickCreateUrl : '';
+
+    let clientSearchTimer = null;
 
     const productsPerPage = 8;
     let currentProductsPage = 1;
@@ -287,6 +350,158 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = value;
             selectElement.appendChild(option);
         });
+    }
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop().split(';').shift();
+        }
+        return '';
+    }
+
+    function hideClientResults() {
+        if (!clientSearchResults) {
+            return;
+        }
+        clientSearchResults.innerHTML = '';
+        clientSearchResults.classList.add('d-none');
+    }
+
+    function ensureClientOption(client) {
+        if (!clientSelect || !client || !client.id) {
+            return;
+        }
+        let option = clientSelect.querySelector(`option[value="${client.id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = String(client.id);
+            option.textContent = client.label || `${client.name} (${client.nit_ci})`;
+            clientSelect.appendChild(option);
+        } else if (client.label) {
+            option.textContent = client.label;
+        }
+        clientSelect.value = String(client.id);
+        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setSelectedClientFromSelect() {
+        if (!clientSelect || !clientSearchInput) {
+            return;
+        }
+        const selected = clientSelect.options[clientSelect.selectedIndex];
+        clientSearchInput.value = selected && selected.value ? selected.textContent : '';
+    }
+
+    function renderClientResults(items) {
+        if (!clientSearchResults) {
+            return;
+        }
+
+        if (!items.length) {
+            clientSearchResults.innerHTML = '<div class="list-group-item small text-muted">No se encontraron clientes.</div>';
+            clientSearchResults.classList.remove('d-none');
+            return;
+        }
+
+        clientSearchResults.innerHTML = items.map(item => {
+            return `
+                <button
+                    type="button"
+                    class="list-group-item list-group-item-action client-result-item"
+                    data-id="${item.id}"
+                    data-name="${item.name}"
+                    data-nit="${item.nit_ci}"
+                    data-label="${item.label}"
+                >
+                    <div class="fw-semibold">${item.name}</div>
+                    <div class="small text-muted">NIT/CI: ${item.nit_ci}${item.phone ? ` · Tel: ${item.phone}` : ''}</div>
+                </button>
+            `;
+        }).join('');
+        clientSearchResults.classList.remove('d-none');
+    }
+
+    async function searchClients(query) {
+        if (!clientLookupUrl || !query || query.length < 2) {
+            hideClientResults();
+            return;
+        }
+
+        try {
+            const response = await fetch(`${clientLookupUrl}?q=${encodeURIComponent(query)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) {
+                hideClientResults();
+                return;
+            }
+            const data = await response.json();
+            renderClientResults(data.results || []);
+        } catch (_err) {
+            hideClientResults();
+        }
+    }
+
+    function setClientQuickFeedback(message, type) {
+        if (!clientQuickFeedback) {
+            return;
+        }
+        clientQuickFeedback.className = `small mt-2 text-${type}`;
+        clientQuickFeedback.textContent = message;
+    }
+
+    async function quickCreateClient() {
+        if (!clientQuickCreateUrl) {
+            return;
+        }
+
+        const name = (quickClientName.value || '').trim();
+        const nitCi = (quickClientNit.value || '').trim();
+        const phone = (quickClientPhone.value || '').trim();
+        const email = (quickClientEmail.value || '').trim();
+
+        if (!name || !nitCi) {
+            setClientQuickFeedback('Nombre y NIT/CI son obligatorios.', 'danger');
+            return;
+        }
+
+        const body = new URLSearchParams({
+            name,
+            nit_ci: nitCi,
+            phone,
+            email,
+        });
+
+        try {
+            const response = await fetch(clientQuickCreateUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body,
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+                setClientQuickFeedback(data.message || 'No se pudo crear el cliente.', 'danger');
+                return;
+            }
+
+            ensureClientOption(data.client);
+            setSelectedClientFromSelect();
+            clientQuickCreateBox.classList.add('d-none');
+            setClientQuickFeedback('', 'muted');
+            quickClientName.value = '';
+            quickClientNit.value = '';
+            quickClientPhone.value = '';
+            quickClientEmail.value = '';
+            hideClientResults();
+        } catch (_err) {
+            setClientQuickFeedback('Error de red al crear el cliente.', 'danger');
+        }
     }
 
     function activeFilters() {
@@ -320,6 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (filters.search) {
                 const text = [
+                    product.code,
                     product.name,
                     product.brand,
                     product.category,
@@ -365,6 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${cardImage(product)}
                         <div class="product-card-body">
                             <div class="product-card-name">${product.name}</div>
+                            ${product.code ? `<div class="product-card-meta text-secondary"><small>${product.code}</small></div>` : ''}
                             <div class="product-card-meta">${product.brand} · ${product.category}</div>
                             <div class="product-card-meta">Color: ${product.color || '-'} · Talla: ${product.size || '-'}</div>
                             <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
@@ -633,6 +850,77 @@ document.addEventListener('DOMContentLoaded', function() {
             currentProductsPage += 1;
             renderProductCards();
         }
+    });
+
+    if (clientSearchInput) {
+        setSelectedClientFromSelect();
+
+        clientSearchInput.addEventListener('input', function() {
+            const query = (clientSearchInput.value || '').trim();
+            if (clientSearchTimer) {
+                clearTimeout(clientSearchTimer);
+            }
+            clientSearchTimer = setTimeout(function() {
+                searchClients(query);
+            }, 250);
+        });
+    }
+
+    if (clientSearchResults) {
+        clientSearchResults.addEventListener('click', function(e) {
+            const button = e.target.closest('.client-result-item');
+            if (!button) {
+                return;
+            }
+            const selected = {
+                id: button.dataset.id,
+                name: button.dataset.name,
+                nit_ci: button.dataset.nit,
+                label: button.dataset.label,
+            };
+            ensureClientOption(selected);
+            setSelectedClientFromSelect();
+            hideClientResults();
+        });
+    }
+
+    if (clientClearButton) {
+        clientClearButton.addEventListener('click', function() {
+            if (clientSelect) {
+                clientSelect.value = '';
+            }
+            if (clientSearchInput) {
+                clientSearchInput.value = '';
+            }
+            hideClientResults();
+        });
+    }
+
+    if (clientQuickCreateToggle) {
+        clientQuickCreateToggle.addEventListener('click', function() {
+            clientQuickCreateBox.classList.toggle('d-none');
+            if (!clientQuickCreateBox.classList.contains('d-none')) {
+                quickClientName.focus();
+            }
+        });
+    }
+
+    if (clientQuickCancelButton) {
+        clientQuickCancelButton.addEventListener('click', function() {
+            clientQuickCreateBox.classList.add('d-none');
+            setClientQuickFeedback('', 'muted');
+        });
+    }
+
+    if (clientQuickSaveButton) {
+        clientQuickSaveButton.addEventListener('click', quickCreateClient);
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!clientSearchBox || clientSearchBox.contains(e.target)) {
+            return;
+        }
+        hideClientResults();
     });
 
     fillFilterOptions(filterCategory, uniqueSortedValues('category'));
