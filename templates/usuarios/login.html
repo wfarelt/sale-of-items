@@ -12,9 +12,11 @@
                     <p class="text-muted mb-0">Inicia sesion para continuar</p>
                 </div>
 
-                {% if form.errors %}
+                {% if form.non_field_errors %}
                     <div class="alert alert-danger" role="alert">
-                        Usuario o contrasena incorrectos.
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
                     </div>
                 {% endif %}
 

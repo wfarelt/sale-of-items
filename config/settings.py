@@ -10,22 +10,52 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _parse_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _load_env_file(env_file_path):
+    env_path = Path(env_file_path)
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
+DEFAULT_ENV_FILE = ".env.production" if DJANGO_ENV == "production" else ".env.development"
+ENV_FILE_PATH = os.getenv("DJANGO_ENV_FILE", str(BASE_DIR / DEFAULT_ENV_FILE))
+_load_env_file(ENV_FILE_PATH)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^w%#mga#en!emm$pae@4^7#^#qd)eas3@t66y2=c=9x_cuqdy%'
+SECRET_KEY = os.getenv('SECRET_KEY', 'dev-insecure-key-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _parse_bool(os.getenv('DEBUG'), default=(DJANGO_ENV != 'production'))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
 
 
 # Application definition
@@ -60,6 +90,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'usuarios.middleware.SessionInactivityMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'empresas.middleware.CompanyMiddleware',
 ]
@@ -148,6 +179,121 @@ AUTH_USER_MODEL = 'usuarios.User'
 LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = 'usuarios:dashboard'
 LOGOUT_REDIRECT_URL = 'usuarios:login'
+
+# Security hardening (recommended for production)
+CSRF_COOKIE_SECURE = _parse_bool(os.getenv('CSRF_COOKIE_SECURE'), default=not DEBUG)
+SESSION_COOKIE_SECURE = _parse_bool(os.getenv('SESSION_COOKIE_SECURE'), default=not DEBUG)
+SECURE_SSL_REDIRECT = _parse_bool(os.getenv('SECURE_SSL_REDIRECT'), default=not DEBUG)
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _parse_bool(os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS'), default=not DEBUG)
+SECURE_HSTS_PRELOAD = _parse_bool(os.getenv('SECURE_HSTS_PRELOAD'), default=not DEBUG)
+SECURE_BROWSER_XSS_FILTER = _parse_bool(os.getenv('SECURE_BROWSER_XSS_FILTER'), default=True)
+SECURE_CONTENT_TYPE_NOSNIFF = _parse_bool(os.getenv('SECURE_CONTENT_TYPE_NOSNIFF'), default=True)
+X_FRAME_OPTIONS = os.getenv('X_FRAME_OPTIONS', 'DENY')
+
+# Trust proxy headers when behind a reverse proxy/load balancer
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Login protection
+LOGIN_FAILURE_LIMIT = int(os.getenv('LOGIN_FAILURE_LIMIT', '5'))
+LOGIN_LOCKOUT_SECONDS = int(os.getenv('LOGIN_LOCKOUT_SECONDS', '900'))
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+LOG_DIR = Path(os.getenv('LOG_DIR', str(BASE_DIR / 'logs')))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} [{levelname}] {name} | {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{asctime} [{levelname}] {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        # Consola — solo en desarrollo
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'filters': ['require_debug_true'],
+        },
+        # Errores de Django (500, excepciones no capturadas)
+        'file_django': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'django.log'),
+            'maxBytes': 5 * 1024 * 1024,   # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        # Eventos operativos de la app (ventas, compras, caja, etc.)
+        'file_app': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'app.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        # Eventos de seguridad (login, logout, fallos, bloqueos, sesión expirada)
+        'file_security': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'security.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        # Framework Django
+        'django': {
+            'handlers': ['console', 'file_django'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Peticiones HTTP — solo errores 4xx/5xx en producción
+        'django.request': {
+            'handlers': ['file_django'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Logger operativo de la app
+        'app': {
+            'handlers': ['console', 'file_app'],
+            'level': os.getenv('APP_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        # Logger de seguridad
+        'security': {
+            'handlers': ['console', 'file_security'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Session expiration
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', '1800'))
+SESSION_SAVE_EVERY_REQUEST = _parse_bool(os.getenv('SESSION_SAVE_EVERY_REQUEST'), default=True)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = _parse_bool(os.getenv('SESSION_EXPIRE_AT_BROWSER_CLOSE'), default=False)
+SESSION_INACTIVITY_TIMEOUT = int(os.getenv('SESSION_INACTIVITY_TIMEOUT', str(SESSION_COOKIE_AGE)))
+SESSION_COOKIE_HTTPONLY = _parse_bool(os.getenv('SESSION_COOKIE_HTTPONLY'), default=True)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

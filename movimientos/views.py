@@ -1,7 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
-from django.views.generic import DetailView, ListView
+from django.shortcuts import redirect
+from django.utils import timezone
+from django.views.generic import DetailView, ListView, View
 
+from config.pdf_utils import render_to_pdf
 from empresas.mixins import CompanyQuerysetMixin
 from productos.models import Product
 
@@ -63,4 +66,18 @@ class InventoryMovementDetailView(InventoryAccessMixin, CompanyQuerysetMixin, De
 
 	def get_queryset(self):
 		return super().get_queryset().prefetch_related("details__product")
+
+
+class InventoryMovementPDFView(InventoryAccessMixin, View):
+	def get(self, request, pk, *args, **kwargs):
+		movement = InventoryMovement.objects.prefetch_related("details__product").get(pk=pk)
+		if request.company and movement.company_id != request.company.id:
+			return redirect("movimientos:list")
+		context = {
+			"movement": movement,
+			"company": request.company,
+			"now": timezone.localtime(),
+		}
+		filename = f"movimiento_{movement.id}.pdf"
+		return render_to_pdf("movimientos/movement_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
 

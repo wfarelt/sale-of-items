@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Role
+from .models import LoginEvent, Role, User
 
 
 @admin.register(Role)
@@ -41,3 +41,11 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('company', 'role', 'is_active', 'created_at')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'company__name')
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(LoginEvent)
+class LoginEventAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'event_type', 'username', 'user', 'ip_address')
+    list_filter = ('event_type', 'created_at')
+    search_fields = ('username', 'user__username', 'ip_address', 'user_agent')
+    readonly_fields = ('user', 'username', 'event_type', 'ip_address', 'user_agent', 'created_at')

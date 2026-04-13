@@ -9,6 +9,7 @@
         <p class="text-muted mb-0">Control diario de ingresos, egresos, saldo inicial y cierre</p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{% url 'caja:report_pdf' %}?date={{ selected_date|date:'Y-m-d' }}" target="_blank" class="btn btn-outline-dark"><i class="fas fa-file-pdf me-1"></i> Imprimir informe</a>
         <a href="{% url 'caja:opening' %}?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-outline-dark"><i class="fas fa-coins me-1"></i> Saldo inicial</a>
         {% if not is_day_closed %}
             <a href="{% url 'caja:close' %}?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-outline-danger"><i class="fas fa-lock me-1"></i> Cerrar dia</a>

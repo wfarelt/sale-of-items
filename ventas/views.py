@@ -5,8 +5,9 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
 
+from config.pdf_utils import render_to_pdf
 from empresas.mixins import CompanyQuerysetMixin
 from productos.models import Product
 from .forms import SaleDetailFormSet, SaleForm
@@ -242,3 +243,19 @@ class SaleDeleteView(SalesAccessMixin, CompanyQuerysetMixin, DeleteView):
 		self.object.canceled_at = timezone.now()
 		self.object.save(update_fields=["status", "canceled_by", "canceled_at", "updated_at"])
 		return redirect(self.success_url)
+
+
+class SalePDFView(SalesAccessMixin, View):
+	def get(self, request, pk, *args, **kwargs):
+		sale = Sale.objects.select_related("client", "company", "seller").get(pk=pk)
+		if request.company and sale.company_id != request.company.id:
+			return redirect("ventas:list")
+		details = sale.saledetail_set.select_related("product").all()
+		context = {
+			"sale": sale,
+			"details": details,
+			"company": sale.company,
+			"now": timezone.localtime(),
+		}
+		filename = f"venta_{sale.id}.pdf"
+		return render_to_pdf("ventas/sale_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))

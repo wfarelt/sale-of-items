@@ -8,8 +8,9 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, View
 
+from config.pdf_utils import render_to_pdf
 from empresas.mixins import CompanyQuerysetMixin
 from .forms import CashBoxCloseForm, CashBoxForm, CashBoxOpeningForm
 from .models import CashBox, CashBoxClosure
@@ -247,4 +248,47 @@ class CashBoxDeleteView(CashBoxAdminAccessMixin, CompanyQuerysetMixin, DeleteVie
 	def handle_no_permission(self):
 		messages.error(self.request, "Solo los administradores pueden eliminar movimientos de caja.")
 		return redirect(self.success_url)
+
+
+class CashBoxDayReportPDFView(CashBoxAccessMixin, View):
+	def get(self, request, *args, **kwargs):
+		company = request.company
+		date_str = request.GET.get("date")
+		try:
+			selected_date = date.fromisoformat(date_str) if date_str else timezone.localdate()
+		except ValueError:
+			selected_date = timezone.localdate()
+
+		date_qs = CashBox.objects.filter(date__date=selected_date)
+		if company:
+			date_qs = date_qs.filter(company=company)
+
+		income_total = date_qs.filter(type=CashBox.TYPE_INCOME).aggregate(t=Sum("amount"))["t"] or 0
+		expense_total = date_qs.filter(type=CashBox.TYPE_EXPENSE).aggregate(t=Sum("amount"))["t"] or 0
+		daily_summary = CashBoxClosure.get_day_summary(selected_date, company)
+
+		report_payment_methods = [CashBox.PAYMENT_METHOD_CASH, CashBox.PAYMENT_METHOD_QR, CashBox.PAYMENT_METHOD_TRANSFER]
+		method_label_map = dict(CashBox.PAYMENT_METHOD_CHOICES)
+		method_report = []
+		for key in report_payment_methods:
+			inc = date_qs.filter(type=CashBox.TYPE_INCOME, payment_method=key).aggregate(t=Sum("amount"))["t"] or 0
+			exp = date_qs.filter(type=CashBox.TYPE_EXPENSE, payment_method=key).aggregate(t=Sum("amount"))["t"] or 0
+			method_report.append({"key": key, "label": method_label_map.get(key, key), "income": inc, "expense": exp, "net": inc - exp})
+
+		context = {
+			"company": company,
+			"selected_date": selected_date,
+			"entries": date_qs.order_by("date"),
+			"income_total": income_total,
+			"expense_total": expense_total,
+			"balance_total": daily_summary["current_balance"],
+			"opening_balance": daily_summary["opening_balance"],
+			"method_report": method_report,
+			"is_day_closed": daily_summary["is_closed"],
+			"closed_at": daily_summary["closed_at"],
+			"closing_balance": daily_summary["closing_balance"],
+			"now": timezone.localtime(),
+		}
+		filename = f"caja_{selected_date.isoformat()}.pdf"
+		return render_to_pdf("caja/cashbox_report_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
 

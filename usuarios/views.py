@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, Q, Sum
@@ -20,13 +19,13 @@ from movimientos.models import InventoryMovement
 from productos.models import Product
 from compras.models import Purchase
 from ventas.models import Sale
-from .forms import CompanyUserCreateForm, CompanyUserUpdateForm, ProfileForm
+from .forms import CompanyUserCreateForm, CompanyUserUpdateForm, LoginProtectionAuthenticationForm, ProfileForm
 from .models import Role, User
 
 
 class LoginView(SuccessMessageMixin, auth_views.LoginView):
     template_name = "usuarios/login.html"
-    authentication_form = AuthenticationForm
+    authentication_form = LoginProtectionAuthenticationForm
     redirect_authenticated_user = True
 
 

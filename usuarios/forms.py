@@ -1,8 +1,60 @@
 from django import forms
+from django.conf import settings
+from django.contrib.auth import authenticate
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 
+from .security import build_login_lock_key, get_client_ip
 from .models import Role, User
+
+
+class LoginProtectionAuthenticationForm(AuthenticationForm):
+	"""Authentication form with temporary lockout after repeated failures."""
+
+	error_messages = {
+		"invalid_login": "Usuario o contrasena incorrectos.",
+		"inactive": "Esta cuenta esta inactiva.",
+		"locked": "Demasiados intentos fallidos. Intenta nuevamente mas tarde.",
+	}
+
+	def clean(self):
+		username = self.cleaned_data.get("username")
+		password = self.cleaned_data.get("password")
+
+		if username is None or password is None:
+			return self.cleaned_data
+
+		max_attempts = getattr(settings, "LOGIN_FAILURE_LIMIT", 5)
+		lockout_seconds = getattr(settings, "LOGIN_LOCKOUT_SECONDS", 900)
+		request = getattr(self, "request", None)
+		client_ip = get_client_ip(request)
+		lock_key = build_login_lock_key(username=username, ip_address=client_ip)
+
+		failed_attempts = cache.get(lock_key, 0)
+		if failed_attempts >= max_attempts:
+			raise self.get_invalid_login_error(code="locked")
+
+		self.user_cache = authenticate(
+			self.request, username=username, password=password
+		)
+		if self.user_cache is None:
+			failed_attempts += 1
+			cache.set(lock_key, failed_attempts, timeout=lockout_seconds)
+			if failed_attempts >= max_attempts:
+				raise self.get_invalid_login_error(code="locked")
+			raise self.get_invalid_login_error(code="invalid_login")
+
+		cache.delete(lock_key)
+		self.confirm_login_allowed(self.user_cache)
+		return self.cleaned_data
+
+	def get_invalid_login_error(self, code="invalid_login"):
+		return ValidationError(
+			self.error_messages[code],
+			code=code,
+		)
 
 
 class ProfileForm(forms.ModelForm):

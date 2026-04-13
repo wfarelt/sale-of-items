@@ -110,3 +110,56 @@ class User(AbstractUser):
         if self.is_superuser:
             return 'Acceso exclusivo al panel de administracion del sistema.'
         return self.role.description
+
+
+class LoginEvent(models.Model):
+    EVENT_LOGIN_SUCCESS = 'login_success'
+    EVENT_LOGIN_FAILED = 'login_failed'
+    EVENT_LOGOUT = 'logout'
+
+    EVENT_CHOICES = (
+        (EVENT_LOGIN_SUCCESS, 'Inicio de sesion exitoso'),
+        (EVENT_LOGIN_FAILED, 'Intento fallido'),
+        (EVENT_LOGOUT, 'Cierre de sesion'),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='login_events',
+        verbose_name='Usuario',
+    )
+    username = models.CharField(
+        max_length=150,
+        blank=True,
+        verbose_name='Username reportado',
+    )
+    event_type = models.CharField(
+        max_length=20,
+        choices=EVENT_CHOICES,
+        verbose_name='Tipo de evento',
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name='Direccion IP',
+    )
+    user_agent = models.TextField(
+        blank=True,
+        verbose_name='User-Agent',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Fecha de evento',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Evento de acceso'
+        verbose_name_plural = 'Eventos de acceso'
+
+    def __str__(self):
+        username = self.username or (self.user.username if self.user else 'anonimo')
+        return f"{self.get_event_type_display()} - {username}"
