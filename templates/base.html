@@ -79,6 +79,9 @@
                                     {% if user.is_admin or user.is_vendedor %}
                                         <li><a class="dropdown-item" href="{% url 'clientes:list' %}"><i class="fas fa-address-book"></i> Clientes</a></li>
                                     {% endif %}
+                                    {% if user.is_admin %}
+                                        <li><a class="dropdown-item" href="{% url 'empresas:settings' %}"><i class="fas fa-building"></i> Empresa</a></li>
+                                    {% endif %}
                                     {% if user.is_admin or user.is_almacen %}
                                         <li><a class="dropdown-item" href="{% url 'productos:list' %}"><i class="fas fa-boxes-stacked"></i> Productos</a></li>
                                         <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>

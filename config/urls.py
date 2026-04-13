@@ -30,6 +30,7 @@ admin.site.has_permission = MethodType(admin_has_permission, admin.site)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('usuarios.urls')),
+    path('empresa/', include('empresas.urls')),
     path('clientes/', include('clientes.urls')),
     path('productos/', include('productos.urls')),
     path('compras/', include('compras.urls')),
