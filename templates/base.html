@@ -80,6 +80,7 @@
                                         <li><a class="dropdown-item" href="{% url 'clientes:list' %}"><i class="fas fa-address-book"></i> Clientes</a></li>
                                     {% endif %}
                                     {% if user.is_admin %}
+                                        <li><a class="dropdown-item" href="{% url 'usuarios:user_list' %}"><i class="fas fa-users"></i> Usuarios</a></li>
                                         <li><a class="dropdown-item" href="{% url 'empresas:settings' %}"><i class="fas fa-building"></i> Empresa</a></li>
                                     {% endif %}
                                     {% if user.is_admin or user.is_almacen %}

@@ -4,12 +4,14 @@ from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from empresas.models import Company
 from clientes.models import Client
@@ -18,7 +20,7 @@ from movimientos.models import InventoryMovement
 from productos.models import Product
 from compras.models import Purchase
 from ventas.models import Sale
-from .forms import ProfileForm
+from .forms import CompanyUserCreateForm, CompanyUserUpdateForm, ProfileForm
 from .models import Role, User
 
 
@@ -39,6 +41,104 @@ class PasswordChangeView(auth_views.PasswordChangeView):
 
 class PasswordChangeDoneView(auth_views.PasswordChangeDoneView):
     template_name = "usuarios/password_change_done.html"
+
+
+class CompanyUsersAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+	def test_func(self):
+		return self.request.user.is_admin
+
+	def dispatch(self, request, *args, **kwargs):
+		if not getattr(request, "company", None):
+			messages.error(request, "Tu usuario no tiene una empresa asociada para gestionar usuarios.")
+			return redirect("usuarios:dashboard")
+		return super().dispatch(request, *args, **kwargs)
+
+
+class CompanyUserListView(CompanyUsersAccessMixin, ListView):
+	model = User
+	template_name = "usuarios/user_list.html"
+	context_object_name = "users"
+	paginate_by = 10
+
+	def get_queryset(self):
+		queryset = (
+			User.objects.select_related("role")
+			.filter(company=self.request.company, is_superuser=False)
+			.order_by("first_name", "last_name", "username")
+		)
+		search = self.request.GET.get("q", "").strip()
+		if search:
+			queryset = queryset.filter(
+				Q(username__icontains=search)
+				| Q(first_name__icontains=search)
+				| Q(last_name__icontains=search)
+				| Q(email__icontains=search)
+			)
+		return queryset
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context["search_query"] = self.request.GET.get("q", "").strip()
+		return context
+
+
+class CompanyUserCreateView(CompanyUsersAccessMixin, CreateView):
+	model = User
+	form_class = CompanyUserCreateForm
+	template_name = "usuarios/user_form.html"
+	success_url = reverse_lazy("usuarios:user_list")
+
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs["company"] = self.request.company
+		return kwargs
+
+	def form_valid(self, form):
+		response = super().form_valid(form)
+		messages.success(self.request, "Usuario creado exitosamente.")
+		return response
+
+
+class CompanyUserUpdateView(CompanyUsersAccessMixin, UpdateView):
+	model = User
+	form_class = CompanyUserUpdateForm
+	template_name = "usuarios/user_form.html"
+	success_url = reverse_lazy("usuarios:user_list")
+
+	def get_queryset(self):
+		return User.objects.select_related("role").filter(company=self.request.company, is_superuser=False)
+
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs["company"] = self.request.company
+		return kwargs
+
+	def form_valid(self, form):
+		response = super().form_valid(form)
+		messages.success(self.request, "Usuario actualizado exitosamente.")
+		return response
+
+
+class CompanyUserDeleteView(CompanyUsersAccessMixin, DeleteView):
+	model = User
+	template_name = "usuarios/user_confirm_delete.html"
+	success_url = reverse_lazy("usuarios:user_list")
+
+	def get_queryset(self):
+		return User.objects.select_related("role").filter(company=self.request.company, is_superuser=False)
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		if self.object.pk == request.user.pk:
+			messages.error(request, "No puedes cambiar tu propio estado desde este modulo.")
+			return redirect(self.success_url)
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active", "updated_at"])
+		if self.object.is_active:
+			messages.success(request, "Usuario activado correctamente.")
+		else:
+			messages.warning(request, "Usuario desactivado correctamente.")
+		return redirect(self.success_url)
 
 
 @login_required
@@ -121,6 +221,7 @@ def dashboard_view(request):
 			{
 				"ventas_hoy": Sale.objects.filter(company=company, date__date=now.date()).count(),
 				"ventas_mes": Sale.objects.filter(company=company, date__gte=month_start).count(),
+				"ingresos_hoy": Sale.objects.filter(company=company, status=Sale.STATUS_CONFIRMED, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
 				"caja_mes": CashBox.objects.filter(company=company, date__gte=month_start, type=CashBox.TYPE_INCOME).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"ultimas_ventas": Sale.objects.filter(company=company).select_related("client").all()[:5],
 				"clientes_total": Client.objects.filter(company=company).count(),
