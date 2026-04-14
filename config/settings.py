@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,22 +41,72 @@ def _load_env_file(env_file_path):
             os.environ[key] = value
 
 
+def _require_env_var(name):
+    value = os.getenv(name)
+    if value is None or not str(value).strip():
+        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+    return str(value).strip()
+
+
+def _resolve_env_file(*candidates):
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
-DEFAULT_ENV_FILE = ".env.production" if DJANGO_ENV == "production" else ".env.development"
-ENV_FILE_PATH = os.getenv("DJANGO_ENV_FILE", str(BASE_DIR / DEFAULT_ENV_FILE))
+if DJANGO_ENV not in {"development", "production"}:
+    raise ImproperlyConfigured(
+        "Invalid DJANGO_ENV value. Use 'development' or 'production'."
+    )
+
+DEVELOPMENT_ENV_PATH = _resolve_env_file(
+    BASE_DIR / ".env.development",
+    BASE_DIR / "env.development",
+)
+PRODUCTION_ENV_PATH = _resolve_env_file(
+    BASE_DIR / ".env.production",
+    BASE_DIR / "env.production",
+)
+
+# Require both env files to exist so the app cannot start without them.
+REQUIRED_ENV_FILES = [
+    DEVELOPMENT_ENV_PATH,
+    PRODUCTION_ENV_PATH,
+]
+missing_required_env_files = [str(path) for path in REQUIRED_ENV_FILES if not path.exists()]
+if missing_required_env_files:
+    raise ImproperlyConfigured(
+        "Missing required environment files: " + ", ".join(missing_required_env_files)
+    )
+
+DEFAULT_ENV_FILE = PRODUCTION_ENV_PATH if DJANGO_ENV == "production" else DEVELOPMENT_ENV_PATH
+ENV_FILE_PATH = Path(os.getenv("DJANGO_ENV_FILE", str(DEFAULT_ENV_FILE)))
+if not ENV_FILE_PATH.is_absolute():
+    ENV_FILE_PATH = BASE_DIR / ENV_FILE_PATH
+if not ENV_FILE_PATH.exists():
+    raise ImproperlyConfigured(f"Environment file not found: {ENV_FILE_PATH}")
+
 _load_env_file(ENV_FILE_PATH)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-insecure-key-change-me')
+# SECURITY WARNING: keep the secret key used in production secret.
+SECRET_KEY = _require_env_var('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _parse_bool(os.getenv('DEBUG'), default=(DJANGO_ENV != 'production'))
+# SECURITY WARNING: don't run with debug turned on in production.
+DEBUG = _parse_bool(_require_env_var('DEBUG'))
+if DJANGO_ENV == 'production' and DEBUG:
+    raise ImproperlyConfigured("DEBUG must be False when DJANGO_ENV=production")
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+ALLOWED_HOSTS = [
+    host.strip() for host in _require_env_var('ALLOWED_HOSTS').split(',') if host.strip()
+]
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("ALLOWED_HOSTS cannot be empty")
 
 
 # Application definition
