@@ -112,7 +112,7 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 				"name": product.name,
 				"price": float(product.price),
 				"stock": product.stock,
-				"brand": product.brand.name,
+				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
 				"size": product.size,
 				"color": product.color,
