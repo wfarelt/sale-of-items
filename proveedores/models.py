@@ -1,7 +1,14 @@
 from django.db import models
 
 
+
 class Proveedor(models.Model):
+    company = models.ForeignKey(
+        'empresas.Company',
+        on_delete=models.CASCADE,
+        related_name='proveedores',
+        verbose_name='Empresa'
+    )
     nombre = models.CharField(max_length=100)
     contacto = models.CharField(max_length=100, blank=True)
     direccion = models.CharField(max_length=200, blank=True)

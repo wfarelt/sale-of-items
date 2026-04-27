@@ -14,10 +14,15 @@ class ProveedorListView(ListView):
         return Proveedor.objects.all().order_by("nombre")
 
 class ProveedorCreateView(CreateView):
+
     model = Proveedor
     form_class = ProveedorForm
     template_name = "proveedores/proveedor_form.html"
     success_url = reverse_lazy("proveedores:list")
+
+    def form_valid(self, form):
+            form.instance.company = self.request.company
+            return super().form_valid(form)
 
 class ProveedorUpdateView(UpdateView):
     model = Proveedor

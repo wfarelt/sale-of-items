@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db import models
 from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -39,8 +40,20 @@ class ProductListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
+		from almacenes.models import Stock
+		# Obtener los productos de la página actual
+		products = context["products"]
+		# Obtener los ids de los productos
+		product_ids = [p.id for p in products]
+		# Consultar el stock total por producto
+		stock_data = Stock.objects.filter(producto_id__in=product_ids).values("producto_id").annotate(total=models.Sum("cantidad"))
+		stock_map = {item["producto_id"]: item["total"] or 0 for item in stock_data}
+		# Asignar el stock_total a cada producto
+		for product in products:
+			product.stock_total = stock_map.get(product.id, 0)
 		context["search_query"] = self.request.GET.get("q", "").strip()
 		return context
+
 
 
 class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
@@ -49,6 +62,11 @@ class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 	template_name = "productos/product_form.html"
 	success_url = reverse_lazy("productos:list")
 
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context['product_stock_total'] = 0
+		return context
+
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()
 		kwargs["user"] = self.request.user
@@ -56,11 +74,22 @@ class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 		return kwargs
 
 
+
 class ProductUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
 	success_url = reverse_lazy("productos:list")
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		from almacenes.models import Stock
+		product = self.object
+		stock_total = 0
+		if product:
+			stock_total = Stock.objects.filter(producto=product).aggregate(total=models.Sum("cantidad"))['total'] or 0
+		context['product_stock_total'] = stock_total
+		return context
 
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()

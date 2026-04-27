@@ -46,7 +46,7 @@
                     <th>Color</th>
                     <th>Estado</th>
                     <th class="text-end">Precio</th>
-                    <th class="text-end">Stock</th>
+                    <th class="text-end">Stock total</th>
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -81,10 +81,10 @@
                     </td>
                     <td class="text-end">Bs {{ product.price }}</td>
                     <td class="text-end">
-                        {% if product.stock_minimo and product.stock < product.stock_minimo %}
-                            <span class="badge text-bg-danger">{{ product.stock }}</span>
+                        {% if product.stock_minimo and product.stock_total < product.stock_minimo %}
+                            <span class="badge text-bg-danger">{{ product.stock_total }}</span>
                         {% else %}
-                            <span class="badge text-bg-success">{{ product.stock }}</span>
+                            <span class="badge text-bg-success">{{ product.stock_total }}</span>
                         {% endif %}
                     </td>
                     <td class="text-end">

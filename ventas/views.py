@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import models
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -105,16 +106,19 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 		products_qs = Product.objects.select_related("brand", "category").filter(is_active=True)
 		if self.request.company:
 			products_qs = products_qs.filter(company=self.request.company)
+		from almacenes.models import Stock
+		product_ids = [p.id for p in products_qs]
+		stock_data = Stock.objects.filter(producto_id__in=product_ids).values("producto_id").annotate(total=models.Sum("cantidad"))
+		stock_map = {item["producto_id"]: item["total"] or 0 for item in stock_data}
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
 				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
-				"stock": product.stock,
+				"stock": stock_map.get(product.id, 0),
 				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
-				"size": product.size,
 				"color": product.color,
 				"image": product.image.url if product.image else "",
 			}

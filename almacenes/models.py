@@ -3,6 +3,12 @@ from django.db import models
 
 
 class Almacen(models.Model):
+    company = models.ForeignKey(
+        'empresas.Company',
+        on_delete=models.CASCADE,
+        related_name='almacenes',
+        verbose_name='Empresa'
+    )
     nombre = models.CharField(max_length=100)
     ubicacion = models.CharField(max_length=200, blank=True)
     descripcion = models.TextField(blank=True)

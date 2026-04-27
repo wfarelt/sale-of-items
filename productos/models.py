@@ -54,7 +54,6 @@ class Product(models.Model):
 	description = models.TextField(blank=True, verbose_name="Descripcion")
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
 	image = models.ImageField(upload_to="productos/", blank=True, null=True, verbose_name="Imagen")
-	stock = models.PositiveIntegerField(default=0, verbose_name="Stock")
 	stock_minimo = models.PositiveIntegerField(default=0, verbose_name="Stock mínimo")
 	formato = models.CharField(max_length=100, blank=True, verbose_name="Formato")
 	indicaciones_uso = models.TextField(blank=True, verbose_name="Indicaciones de uso")

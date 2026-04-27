@@ -26,6 +26,10 @@ class AlmacenCreateView(AlmacenAccessMixin, CreateView):
     template_name = "almacenes/almacen_form.html"
     success_url = reverse_lazy("almacenes:list")
 
+    def form_valid(self, form):
+            form.instance.company = self.request.company
+            return super().form_valid(form)
+
 class AlmacenUpdateView(AlmacenAccessMixin, UpdateView):
     model = Almacen
     form_class = AlmacenForm

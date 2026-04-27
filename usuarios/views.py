@@ -196,7 +196,9 @@ def dashboard_view(request):
 			{
 				"clients_total": Client.objects.filter(company=company).count(),
 				"products_total": Product.objects.filter(company=company).count(),
-				"products_low_stock": Product.objects.filter(company=company, stock__lte=5).count(),
+				   "products_low_stock": Product.objects.filter(company=company)
+					   .annotate(stock_total=Sum('stocks__cantidad'))
+					   .filter(stock_total__lte=5).count(),
 				"purchases_total": Purchase.objects.filter(company=company).count(),
 				"purchases_pending": Purchase.objects.filter(company=company, status="pendiente").count(),
 				"purchases_total_value": Purchase.objects.filter(company=company, status="recibida").aggregate(Sum("total"))["total__sum"] or 0,

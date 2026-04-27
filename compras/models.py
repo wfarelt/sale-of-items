@@ -16,7 +16,12 @@ class Purchase(models.Model):
 		verbose_name='Empresa',
 		related_name='purchases',
 	)
-	supplier = models.CharField(max_length=200, verbose_name="Proveedor")
+	supplier = models.ForeignKey(
+		'proveedores.Proveedor',
+		on_delete=models.PROTECT,
+		verbose_name="Proveedor",
+		related_name="purchases"
+	)
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendiente", verbose_name="Estado")
 	created_at = models.DateTimeField(auto_now_add=True)

@@ -206,6 +206,7 @@ class PurchaseCreateView(InventoryAccessMixin, CreateView):
 	template_name = "compras/purchase_form.html"
 	success_url = reverse_lazy("compras:list")
 
+
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
 		self.object = None
@@ -213,7 +214,9 @@ class PurchaseCreateView(InventoryAccessMixin, CreateView):
 		formset = PurchaseDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
-			self.object = form.save()
+			self.object = form.save(commit=False)
+			self.object.company = request.company
+			self.object.save()
 			formset.instance = self.object
 			formset.save()
 			self.object.calculate_total()
@@ -221,7 +224,7 @@ class PurchaseCreateView(InventoryAccessMixin, CreateView):
 			# Actualizar stock si es "recibida"
 			if self.object.status == "recibida":
 				from caja.models import CashBox
-				CashBox.validate_day_open(self.object.date)
+				CashBox.validate_day_open(self.object.date, self.object.company)
 				self.object.apply_inventory_update()
 				CashBox.register_purchase(self.object)
 

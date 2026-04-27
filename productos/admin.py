@@ -17,6 +17,6 @@ class BrandAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-	list_display = ("code", "name", "category", "price", "stock", "formato", "acabado", "metros_cuadrados_por_caja")
+	list_display = ("code", "name", "category", "price", "formato", "acabado", "metros_cuadrados_por_caja")
 	list_filter = ("category", "formato", "acabado")
 	search_fields = ("code", "name", "description", "formato", "acabado")

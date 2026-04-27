@@ -9,9 +9,13 @@ class PurchaseForm(forms.ModelForm):
 		model = Purchase
 		fields = ["supplier", "status"]
 		widgets = {
-			"supplier": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre del proveedor"}),
+			"supplier": forms.Select(attrs={"class": "form-select", "data-placeholder": "Seleccione un proveedor"}),
 			"status": forms.Select(attrs={"class": "form-select"}),
 		}
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields['supplier'].empty_label = "Seleccione un proveedor"
 
 
 class PurchaseDetailForm(forms.ModelForm):
