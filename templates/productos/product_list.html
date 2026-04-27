@@ -39,7 +39,10 @@
                     <th>Nombre</th>
                     <th>Categoria</th>
                     <th>Marca</th>
-                    <th>Talla</th>
+                    <th>Formato</th>
+                    <th>Acabado</th>
+                    <th>m²/caja</th>
+                    <th>Indicaciones de uso</th>
                     <th>Color</th>
                     <th>Estado</th>
                     <th class="text-end">Precio</th>
@@ -64,7 +67,10 @@
                     </td>
                     <td>{{ product.category }}</td>
                     <td>{{ product.brand }}</td>
-                    <td>{{ product.size|default:'-' }}</td>
+                    <td>{{ product.formato|default:'-' }}</td>
+                    <td>{{ product.acabado|default:'-' }}</td>
+                    <td>{{ product.metros_cuadrados_por_caja|default:'-' }}</td>
+                    <td>{{ product.indicaciones_uso|default:'-'|truncatechars:40 }}</td>
                     <td>{{ product.color|default:'-' }}</td>
                     <td>
                         {% if product.is_active %}
@@ -75,7 +81,7 @@
                     </td>
                     <td class="text-end">Bs {{ product.price }}</td>
                     <td class="text-end">
-                        {% if product.stock <= 5 %}
+                        {% if product.stock_minimo and product.stock < product.stock_minimo %}
                             <span class="badge text-bg-danger">{{ product.stock }}</span>
                         {% else %}
                             <span class="badge text-bg-success">{{ product.stock }}</span>

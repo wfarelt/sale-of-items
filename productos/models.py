@@ -42,15 +42,7 @@ class Brand(models.Model):
 
 
 class Product(models.Model):
-	SIZE_CHOICES = (
-		("XS", "XS"),
-		("S", "S"),
-		("M", "M"),
-		("L", "L"),
-		("XL", "XL"),
-		("XXL", "XXL"),
-	)
-
+		# El campo color fue restaurado para porcelanatos
 	company = models.ForeignKey(
 		'empresas.Company',
 		on_delete=models.CASCADE,
@@ -63,9 +55,13 @@ class Product(models.Model):
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
 	image = models.ImageField(upload_to="productos/", blank=True, null=True, verbose_name="Imagen")
 	stock = models.PositiveIntegerField(default=0, verbose_name="Stock")
-	size = models.CharField(max_length=10, choices=SIZE_CHOICES, blank=True, verbose_name="Talla")
+	stock_minimo = models.PositiveIntegerField(default=0, verbose_name="Stock mínimo")
+	formato = models.CharField(max_length=100, blank=True, verbose_name="Formato")
+	indicaciones_uso = models.TextField(blank=True, verbose_name="Indicaciones de uso")
+	metros_cuadrados_por_caja = models.DecimalField(max_digits=7, decimal_places=2, default=0, verbose_name="m² por caja")
+	acabado = models.CharField(max_length=100, blank=True, verbose_name="Acabado")
 	color = models.CharField(max_length=50, blank=True, verbose_name="Color")
-	brand = models.ForeignKey(Brand, on_delete=models.PROTECT, verbose_name="Marca")
+	brand = models.ForeignKey(Brand, on_delete=models.PROTECT, verbose_name="Marca", null=True, blank=True)
 	category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name="Categoria")
 	is_active = models.BooleanField(default=True, verbose_name="Activo")
 	created_at = models.DateTimeField(auto_now_add=True)

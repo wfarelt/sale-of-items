@@ -19,10 +19,14 @@ class ProductForm(forms.ModelForm):
             "price",
             "image",
             "stock",
-            "size",
+            "formato",
+            "indicaciones_uso",
+            "metros_cuadrados_por_caja",
+            "acabado",
             "color",
             "brand",
             "category",
+            "stock_minimo",
         ]
         widgets = {
             "code": forms.TextInput(attrs={"class": "form-control"}),
@@ -30,10 +34,14 @@ class ProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "stock": forms.NumberInput(attrs={"class": "form-control"}),
-            "size": forms.Select(attrs={"class": "form-select"}),
+            "formato": forms.TextInput(attrs={"class": "form-control"}),
+            "indicaciones_uso": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "metros_cuadrados_por_caja": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "acabado": forms.TextInput(attrs={"class": "form-control"}),
             "color": forms.TextInput(attrs={"class": "form-control"}),
             "brand": forms.Select(attrs={"class": "form-select"}),
             "category": forms.Select(attrs={"class": "form-select"}),
+            "stock_minimo": forms.NumberInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):

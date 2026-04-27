@@ -28,9 +28,19 @@
                             <div class="text-danger small mt-1">{{ form.price.errors|striptags }}</div>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label" for="id_metros_cuadrados_por_caja">m² por caja</label>
+                            {{ form.metros_cuadrados_por_caja }}
+                            <div class="text-danger small mt-1">{{ form.metros_cuadrados_por_caja.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label" for="id_stock">Stock</label>
                             {{ form.stock }}
                             <div class="text-danger small mt-1">{{ form.stock.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_stock_minimo">Stock mínimo</label>
+                            {{ form.stock_minimo }}
+                            <div class="text-danger small mt-1">{{ form.stock_minimo.errors|striptags }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="id_brand">Marca</label>
@@ -42,15 +52,25 @@
                             {{ form.category }}
                             <div class="text-danger small mt-1">{{ form.category.errors|striptags }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="id_size">Talla</label>
-                            {{ form.size }}
-                            <div class="text-danger small mt-1">{{ form.size.errors|striptags }}</div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_formato">Formato</label>
+                            {{ form.formato }}
+                            <div class="text-danger small mt-1">{{ form.formato.errors|striptags }}</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_acabado">Acabado</label>
+                            {{ form.acabado }}
+                            <div class="text-danger small mt-1">{{ form.acabado.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label" for="id_color">Color</label>
                             {{ form.color }}
                             <div class="text-danger small mt-1">{{ form.color.errors|striptags }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="id_indicaciones_uso">Indicaciones de uso</label>
+                            {{ form.indicaciones_uso }}
+                            <div class="text-danger small mt-1">{{ form.indicaciones_uso.errors|striptags }}</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="id_description">Descripcion</label>
