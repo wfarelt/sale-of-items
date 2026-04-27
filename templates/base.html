@@ -85,6 +85,7 @@
                                     {% endif %}
                                     {% if user.is_admin or user.is_almacen %}
                                         <li><a class="dropdown-item" href="{% url 'productos:list' %}"><i class="fas fa-boxes-stacked"></i> Productos</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'proveedores:list' %}"><i class="fas fa-truck"></i> Proveedores</a></li>
                                         <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>
                                         <li><a class="dropdown-item" href="{% url 'movimientos:list' %}"><i class="fas fa-arrows-rotate"></i> Movimientos</a></li>
                                     {% endif %}
