@@ -36,14 +36,6 @@ class Role(models.Model):
 
 class User(AbstractUser):
     """Modelo de Usuario extendido"""
-    company = models.ForeignKey(
-        'empresas.Company',
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        verbose_name='Empresa',
-        related_name='users',
-    )
     role = models.ForeignKey(
         Role,
         on_delete=models.PROTECT,

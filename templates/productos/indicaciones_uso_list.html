@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Indicaciones de uso{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-0">Indicaciones de uso</h1>
+        <p class="text-muted mb-0">Catalogo de indicaciones</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'productos:list' %}" class="btn btn-outline-secondary">Volver a productos</a>
+        <a href="{% url 'productos:indicaciones_create' %}" class="btn btn-dark">Nueva indicación</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for indicacion in indicaciones %}
+                <tr>
+                    <td>{{ indicacion.name }}</td>
+                    <td class="text-muted small">{{ indicacion.description|truncatewords:10 }}</td>
+                    <td>
+                        {% if indicacion.is_active %}
+                            <span class="badge text-bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'productos:indicaciones_update' indicacion.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-pen"></i></a>
+                        <a href="{% url 'productos:indicaciones_delete' indicacion.pk %}" class="btn btn-sm {% if indicacion.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"><i class="fas {% if indicacion.is_active %}fa-toggle-off{% else %}fa-toggle-on{% endif %}"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center py-4 text-muted">No hay indicaciones registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -55,11 +55,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'usuarios:dashboard' %}">
                 <i class="fas fa-store"></i>
-                {% if request.company %}
-                    {{ request.company.name }}
-                {% else %}
-                    Venta Articulos
-                {% endif %}
+                Venta de Porcelanatos
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -85,7 +81,6 @@
                                     {% endif %}
                                     {% if user.is_admin or user.is_almacen %}
                                         <li><a class="dropdown-item" href="{% url 'productos:list' %}"><i class="fas fa-boxes-stacked"></i> Productos</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'almacenes:list' %}"><i class="fas fa-warehouse"></i> Almacenes</a></li>
                                         <li><a class="dropdown-item" href="{% url 'proveedores:list' %}"><i class="fas fa-truck"></i> Proveedores</a></li>
                                         <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>
                                         <li><a class="dropdown-item" href="{% url 'movimientos:list' %}"><i class="fas fa-arrows-rotate"></i> Movimientos</a></li>

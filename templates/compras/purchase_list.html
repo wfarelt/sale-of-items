@@ -15,7 +15,7 @@
     <div class="card-body">
         <form method="get" class="row g-2 align-items-center">
             <div class="col-12 col-md-9">
-                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Buscar por proveedor">
+				<input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Buscar por proveedor o nro. factura">
             </div>
             <div class="col-12 col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-dark w-100"><i class="fas fa-magnifying-glass me-1"></i> Buscar</button>
@@ -32,6 +32,7 @@
                 <tr>
                     <th>#</th>
                     <th>Proveedor</th>
+                    <th>Nro. factura</th>
                     <th>Fecha</th>
                     <th class="text-end">Total</th>
                     <th>Estado</th>
@@ -43,6 +44,7 @@
                 <tr>
                     <td><span class="badge text-bg-secondary font-monospace">{{ purchase.id }}</span></td>
                     <td>{{ purchase.supplier }}</td>
+                    <td>{{ purchase.invoice_number|default:'-' }}</td>
                     <td><small class="text-muted">{{ purchase.date|date:'d/m/Y H:i' }}</small></td>
                     <td class="text-end">
                         <strong>Bs {{ purchase.total|floatformat:2 }}</strong>
@@ -70,7 +72,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No hay compras registradas.</td>
+					<td colspan="7" class="text-center py-4 text-muted">No hay compras registradas.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -12,6 +12,7 @@
                 <div class="alert alert-warning">
                     <p class="mb-0"><strong>¿Estás seguro de que deseas eliminar la compra #{{ object.id }}?</strong></p>
                     <p class="small text-muted mt-2 mb-0">Proveedor: <strong>{{ object.supplier }}</strong></p>
+					<p class="small text-muted mb-0">Nro. factura: <strong>{{ object.invoice_number|default:'-' }}</strong></p>
                     <p class="small text-muted mb-0">Total: <strong>Bs {{ object.total|floatformat:2 }}</strong></p>
                 </div>
 

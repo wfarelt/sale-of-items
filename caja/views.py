@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, View
 
 from config.pdf_utils import render_to_pdf
-from empresas.mixins import CompanyQuerysetMixin
+from empresas.models import Company
 from .forms import CashBoxCloseForm, CashBoxForm, CashBoxOpeningForm
 from .models import CashBox, CashBoxClosure
 
@@ -26,7 +26,7 @@ class CashBoxAdminAccessMixin(CashBoxAccessMixin):
 		return self.request.user.is_admin
 
 
-class CashBoxListView(CashBoxAccessMixin, CompanyQuerysetMixin, ListView):
+class CashBoxListView(CashBoxAccessMixin, ListView):
 	model = CashBox
 	template_name = "caja/cashbox_list.html"
 	context_object_name = "entries"
@@ -43,10 +43,7 @@ class CashBoxListView(CashBoxAccessMixin, CompanyQuerysetMixin, ListView):
 
 	def get_queryset(self):
 		selected_date = self.get_selected_date()
-		company = self.request.company
 		queryset = CashBox.objects.filter(date__date=selected_date)
-		if company:
-			queryset = queryset.filter(company=company)
 		search = self.request.GET.get("q")
 		entry_type = self.request.GET.get("type")
 		reference = self.request.GET.get("reference")
@@ -65,15 +62,12 @@ class CashBoxListView(CashBoxAccessMixin, CompanyQuerysetMixin, ListView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		selected_date = self.get_selected_date()
-		company = self.request.company
 		selected_payment_method = self.request.GET.get("payment_method", "")
 		filtered_queryset = self.get_queryset()
 		date_queryset = CashBox.objects.filter(date__date=selected_date)
-		if company:
-			date_queryset = date_queryset.filter(company=company)
 		ingresos = filtered_queryset.filter(type=CashBox.TYPE_INCOME).aggregate(total=Sum("amount"))["total"] or 0
 		egresos = filtered_queryset.filter(type=CashBox.TYPE_EXPENSE).aggregate(total=Sum("amount"))["total"] or 0
-		daily_summary = CashBoxClosure.get_day_summary(selected_date, company)
+		daily_summary = CashBoxClosure.get_day_summary(selected_date)
 
 		report_payment_methods = [
 			CashBox.PAYMENT_METHOD_CASH,
@@ -118,13 +112,13 @@ class CashBoxListView(CashBoxAccessMixin, CompanyQuerysetMixin, ListView):
 		return context
 
 
-class CashBoxDetailView(CashBoxAccessMixin, CompanyQuerysetMixin, DetailView):
+class CashBoxDetailView(CashBoxAccessMixin, DetailView):
 	model = CashBox
 	template_name = "caja/cashbox_detail.html"
 	context_object_name = "entry"
 
 
-class CashBoxCreateView(CashBoxAccessMixin, CompanyQuerysetMixin, CreateView):
+class CashBoxCreateView(CashBoxAccessMixin, CreateView):
 	model = CashBox
 	form_class = CashBoxForm
 	template_name = "caja/cashbox_form.html"
@@ -158,7 +152,7 @@ class CashBoxOpeningView(CashBoxAccessMixin, FormView):
 			target_date = date.fromisoformat(selected_date) if selected_date else timezone.localdate()
 		except ValueError:
 			target_date = timezone.localdate()
-		summary = CashBoxClosure.get_day_summary(target_date, self.request.company)
+		summary = CashBoxClosure.get_day_summary(target_date)
 		initial["date"] = target_date
 		initial["opening_balance"] = summary["opening_balance"]
 		return initial
@@ -168,7 +162,6 @@ class CashBoxOpeningView(CashBoxAccessMixin, FormView):
 			closure = CashBoxClosure.set_opening_balance(
 				target_date=form.cleaned_data["date"],
 				opening_balance=form.cleaned_data["opening_balance"],
-				company=self.request.company,
 			)
 		except ValidationError as exc:
 			form.add_error(None, exc)
@@ -200,15 +193,13 @@ class CashBoxCloseView(CashBoxAccessMixin, FormView):
 		else:
 			target_date = form.initial.get("date", timezone.localdate())
 		context["target_date"] = target_date
-		context["summary"] = CashBoxClosure.get_day_summary(target_date, self.request.company)
+		context["summary"] = CashBoxClosure.get_day_summary(target_date)
 		return context
 
 	def form_valid(self, form):
 		target_date = form.cleaned_data["date"]
-		company = self.request.company
-		suggested = CashBoxClosure.get_suggested_opening_balance(target_date, company)
+		suggested = CashBoxClosure.get_suggested_opening_balance(target_date)
 		closure, _ = CashBoxClosure.objects.get_or_create(
-			company=company,
 			date=target_date,
 			defaults={
 				"opening_balance": suggested,
@@ -225,7 +216,7 @@ class CashBoxCloseView(CashBoxAccessMixin, FormView):
 		return HttpResponseRedirect(f'{reverse_lazy("caja:list")}?date={closure.date.isoformat()}')
 
 
-class CashBoxDeleteView(CashBoxAdminAccessMixin, CompanyQuerysetMixin, DeleteView):
+class CashBoxDeleteView(CashBoxAdminAccessMixin, DeleteView):
 	model = CashBox
 	template_name = "caja/cashbox_confirm_delete.html"
 	success_url = reverse_lazy("caja:list")
@@ -237,7 +228,7 @@ class CashBoxDeleteView(CashBoxAdminAccessMixin, CompanyQuerysetMixin, DeleteVie
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
 		try:
-			CashBox.validate_day_open(self.object.date, self.object.company)
+			CashBox.validate_day_open(self.object.date)
 		except ValidationError as exc:
 			messages.error(request, str(exc))
 			return redirect(self.get_success_url())
@@ -252,7 +243,6 @@ class CashBoxDeleteView(CashBoxAdminAccessMixin, CompanyQuerysetMixin, DeleteVie
 
 class CashBoxDayReportPDFView(CashBoxAccessMixin, View):
 	def get(self, request, *args, **kwargs):
-		company = request.company
 		date_str = request.GET.get("date")
 		try:
 			selected_date = date.fromisoformat(date_str) if date_str else timezone.localdate()
@@ -260,12 +250,10 @@ class CashBoxDayReportPDFView(CashBoxAccessMixin, View):
 			selected_date = timezone.localdate()
 
 		date_qs = CashBox.objects.filter(date__date=selected_date)
-		if company:
-			date_qs = date_qs.filter(company=company)
 
 		income_total = date_qs.filter(type=CashBox.TYPE_INCOME).aggregate(t=Sum("amount"))["t"] or 0
 		expense_total = date_qs.filter(type=CashBox.TYPE_EXPENSE).aggregate(t=Sum("amount"))["t"] or 0
-		daily_summary = CashBoxClosure.get_day_summary(selected_date, company)
+		daily_summary = CashBoxClosure.get_day_summary(selected_date)
 
 		report_payment_methods = [CashBox.PAYMENT_METHOD_CASH, CashBox.PAYMENT_METHOD_QR, CashBox.PAYMENT_METHOD_TRANSFER]
 		method_label_map = dict(CashBox.PAYMENT_METHOD_CHOICES)
@@ -276,7 +264,7 @@ class CashBoxDayReportPDFView(CashBoxAccessMixin, View):
 			method_report.append({"key": key, "label": method_label_map.get(key, key), "income": inc, "expense": exp, "net": inc - exp})
 
 		context = {
-			"company": company,
+			"company": Company.get_solo(),
 			"selected_date": selected_date,
 			"entries": date_qs.order_by("date"),
 			"income_total": income_total,

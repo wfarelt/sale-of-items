@@ -120,7 +120,6 @@ class BaseCompanyUserForm(forms.ModelForm):
 		}
 
 	def __init__(self, *args, **kwargs):
-		self.company = kwargs.pop("company", None)
 		super().__init__(*args, **kwargs)
 		self.fields["email"].required = False
 		self.fields["phone"].required = False
@@ -135,8 +134,6 @@ class BaseCompanyUserForm(forms.ModelForm):
 
 	def save(self, commit=True):
 		user = super().save(commit=False)
-		if self.company:
-			user.company = self.company
 		if commit:
 			user.save()
 		return user

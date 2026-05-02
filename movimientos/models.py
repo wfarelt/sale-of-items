@@ -1,4 +1,7 @@
-﻿from django.db import models
+﻿from decimal import Decimal
+
+from django.core.validators import MinValueValidator
+from django.db import models
 
 
 class InventoryMovement(models.Model):
@@ -9,12 +12,6 @@ class InventoryMovement(models.Model):
         (TYPE_OUT, "Salida"),
     )
 
-    company = models.ForeignKey(
-        "empresas.Company",
-        on_delete=models.CASCADE,
-        verbose_name="Empresa",
-        related_name="inventory_movements",
-    )
     product = models.ForeignKey(
         "productos.Product",
         on_delete=models.PROTECT,
@@ -24,7 +21,14 @@ class InventoryMovement(models.Model):
         blank=True,
     )
     type = models.CharField(max_length=3, choices=TYPE_CHOICES, verbose_name="Tipo")
-    quantity = models.PositiveIntegerField(verbose_name="Cantidad", null=True, blank=True)
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Cantidad",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
     date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
     reference = models.CharField(max_length=120, verbose_name="Referencia")
     description = models.TextField(blank=True, verbose_name="Descripcion")
@@ -44,9 +48,8 @@ class InventoryMovement(models.Model):
         return self.quantity or 0
 
     @classmethod
-    def create_movement(cls, movement_type, reference, description="", details=None, company=None):
+    def create_movement(cls, movement_type, reference, description="", details=None):
         movement = cls.objects.create(
-            company=company,
             type=movement_type,
             reference=reference,
             description=description,
@@ -74,7 +77,12 @@ class InventoryMovementDetail(models.Model):
         related_name="movement_details",
         verbose_name="Producto",
     )
-    quantity = models.PositiveIntegerField(verbose_name="Cantidad")
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Cantidad",
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
 
     class Meta:
         verbose_name = "Detalle de movimiento"

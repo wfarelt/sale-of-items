@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} acabado{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">{% if object %}Editar acabado{% else %}Nuevo acabado{% endif %}</h1>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <label class="form-label" for="id_name">Nombre</label>
+                    {{ form.name }}
+                    <div class="text-danger small mt-1">{{ form.name.errors|striptags }}</div>
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{% url 'productos:acabados' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-dark">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

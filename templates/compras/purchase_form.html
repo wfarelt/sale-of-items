@@ -14,12 +14,20 @@
 
                     <!-- Información principal de la compra -->
                     <div class="row g-3 mb-4">
-                        <div class="col-md-8">
+						<div class="col-md-5">
                             <label class="form-label" for="id_supplier">Proveedor <span class="text-danger">*</span></label>
                             {{ form.supplier }}
+                            {% if form.supplier.help_text %}
+                                <div class="form-text">{{ form.supplier.help_text }}</div>
+                            {% endif %}
                             <div class="text-danger small mt-1">{{ form.supplier.errors|striptags }}</div>
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label" for="id_invoice_number">Nro. factura <span class="text-danger">*</span></label>
+                            {{ form.invoice_number }}
+                            <div class="text-danger small mt-1">{{ form.invoice_number.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
                             {{ form.status }}
                             <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>

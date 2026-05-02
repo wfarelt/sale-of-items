@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -10,13 +13,14 @@ class Purchase(models.Model):
 	)
 
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
-	company = models.ForeignKey(
-		'empresas.Company',
-		on_delete=models.CASCADE,
-		verbose_name='Empresa',
-		related_name='purchases',
+	supplier = models.ForeignKey(
+		"proveedores.Proveedor",
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		verbose_name="Proveedor",
 	)
-	supplier = models.CharField(max_length=200, verbose_name="Proveedor")
+	invoice_number = models.CharField(max_length=50, blank=True, default="", verbose_name="Numero de factura")
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendiente", verbose_name="Estado")
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -28,7 +32,8 @@ class Purchase(models.Model):
 		verbose_name_plural = "Compras"
 
 	def __str__(self):
-		return f"Compra #{self.pk} - {self.supplier} - {self.date.strftime('%d/%m/%Y')}"
+		supplier_name = self.supplier.nombre if self.supplier else "Sin proveedor"
+		return f"Compra #{self.pk} - {supplier_name} - {self.date.strftime('%d/%m/%Y')}"
 
 	def calculate_total(self):
 		"""Calcula el total basado en los detalles de la compra"""
@@ -59,9 +64,8 @@ class Purchase(models.Model):
 		InventoryMovement.create_movement(
 			movement_type=InventoryMovement.TYPE_IN,
 			reference=f"Compra #{self.pk}",
-			description=f"Ingreso por compra al proveedor {self.supplier}",
+			description=f"Ingreso por compra al proveedor {self.supplier or 'Sin proveedor'}",
 			details=movement_details,
-			company=self.company,
 		)
 
 	def revert_inventory_update(self):
@@ -83,16 +87,20 @@ class Purchase(models.Model):
 		InventoryMovement.create_movement(
 			movement_type=InventoryMovement.TYPE_OUT,
 			reference=f"Eliminación compra #{self.pk}",
-			description=f"Reversa de compra del proveedor {self.supplier}",
+			description=f"Reversa de compra del proveedor {self.supplier or 'Sin proveedor'}",
 			details=movement_details,
-			company=self.company,
 		)
 
 
 class PurchaseDetail(models.Model):
 	purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, verbose_name="Compra")
 	product = models.ForeignKey('productos.Product', on_delete=models.PROTECT, verbose_name="Producto")
-	quantity = models.PositiveIntegerField(verbose_name="Cantidad")
+	quantity = models.DecimalField(
+		max_digits=12,
+		decimal_places=2,
+		verbose_name="Cantidad",
+		validators=[MinValueValidator(Decimal("0.01"))],
+	)
 	cost_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio unitario")
 	sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio de venta")
 	created_at = models.DateTimeField(auto_now_add=True)

@@ -5,14 +5,13 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, Q, Sum
+from django.db.models import Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from empresas.models import Company
 from clientes.models import Client
 from caja.models import CashBox
 from movimientos.models import InventoryMovement
@@ -46,12 +45,6 @@ class CompanyUsersAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 	def test_func(self):
 		return self.request.user.is_admin
 
-	def dispatch(self, request, *args, **kwargs):
-		if not getattr(request, "company", None):
-			messages.error(request, "Tu usuario no tiene una empresa asociada para gestionar usuarios.")
-			return redirect("usuarios:dashboard")
-		return super().dispatch(request, *args, **kwargs)
-
 
 class CompanyUserListView(CompanyUsersAccessMixin, ListView):
 	model = User
@@ -62,7 +55,7 @@ class CompanyUserListView(CompanyUsersAccessMixin, ListView):
 	def get_queryset(self):
 		queryset = (
 			User.objects.select_related("role")
-			.filter(company=self.request.company, is_superuser=False)
+			.filter(is_superuser=False)
 			.order_by("first_name", "last_name", "username")
 		)
 		search = self.request.GET.get("q", "").strip()
@@ -87,11 +80,6 @@ class CompanyUserCreateView(CompanyUsersAccessMixin, CreateView):
 	template_name = "usuarios/user_form.html"
 	success_url = reverse_lazy("usuarios:user_list")
 
-	def get_form_kwargs(self):
-		kwargs = super().get_form_kwargs()
-		kwargs["company"] = self.request.company
-		return kwargs
-
 	def form_valid(self, form):
 		response = super().form_valid(form)
 		messages.success(self.request, "Usuario creado exitosamente.")
@@ -105,12 +93,7 @@ class CompanyUserUpdateView(CompanyUsersAccessMixin, UpdateView):
 	success_url = reverse_lazy("usuarios:user_list")
 
 	def get_queryset(self):
-		return User.objects.select_related("role").filter(company=self.request.company, is_superuser=False)
-
-	def get_form_kwargs(self):
-		kwargs = super().get_form_kwargs()
-		kwargs["company"] = self.request.company
-		return kwargs
+		return User.objects.select_related("role").filter(is_superuser=False)
 
 	def form_valid(self, form):
 		response = super().form_valid(form)
@@ -124,7 +107,7 @@ class CompanyUserDeleteView(CompanyUsersAccessMixin, DeleteView):
 	success_url = reverse_lazy("usuarios:user_list")
 
 	def get_queryset(self):
-		return User.objects.select_related("role").filter(company=self.request.company, is_superuser=False)
+		return User.objects.select_related("role").filter(is_superuser=False)
 
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
@@ -143,28 +126,23 @@ class CompanyUserDeleteView(CompanyUsersAccessMixin, DeleteView):
 @login_required
 def dashboard_view(request):
 	user = request.user
-	company = request.company
 
 	context = {"page_title": "Dashboard"}
 
 	if user.is_superuser:
+		now = timezone.localtime()
+		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
 				"page_title": "Panel de administracion",
 				"admin_panel_url": "/admin/",
-				"companies_total": Company.objects.count(),
-				"companies_active": Company.objects.filter(is_active=True).count(),
-				"companies_inactive": Company.objects.filter(is_active=False).count(),
 				"users_total": User.objects.count(),
-				"users_with_company": User.objects.filter(company__isnull=False).count(),
-				"users_without_company": User.objects.filter(company__isnull=True).count(),
 				"users_active": User.objects.filter(is_active=True).count(),
 				"users_inactive": User.objects.filter(is_active=False).count(),
 				"roles_total": Role.objects.count(),
-				"users_by_role": Role.objects.annotate(total=Count("user")),
-				"companies_overview": Company.objects.annotate(
-					users_count=Count("users", distinct=True),
-				).order_by("-users_count", "name")[:10],
+				"clients_total": Client.objects.count(),
+				"products_total": Product.objects.count(),
+				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
 			}
 		)
 	elif user.is_admin:
@@ -172,7 +150,6 @@ def dashboard_view(request):
 		week_start_date = now.date() - timedelta(days=6)
 		sales_last_week_qs = (
 			Sale.objects.filter(
-				company=company,
 				status=Sale.STATUS_CONFIRMED,
 				date__date__gte=week_start_date,
 			)
@@ -194,20 +171,20 @@ def dashboard_view(request):
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
-				"clients_total": Client.objects.filter(company=company).count(),
-				"products_total": Product.objects.filter(company=company).count(),
-				"products_low_stock": Product.objects.filter(company=company, stock__lte=5).count(),
-				"purchases_total": Purchase.objects.filter(company=company).count(),
-				"purchases_pending": Purchase.objects.filter(company=company, status="pendiente").count(),
-				"purchases_total_value": Purchase.objects.filter(company=company, status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
-				"sales_total": Sale.objects.filter(company=company).count(),
-				"sales_today_total": Sale.objects.filter(company=company, date__date=now.date()).count(),
-				"sales_today_amount": Sale.objects.filter(company=company, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
-				"sales_month_total": Sale.objects.filter(company=company, date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
-				"movements_total": InventoryMovement.objects.filter(company=company).count(),
-				"cash_entries_total": CashBox.objects.filter(company=company).count(),
-				"cash_income_month": CashBox.objects.filter(company=company, type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
-				"cash_expense_month": CashBox.objects.filter(company=company, type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
+				"clients_total": Client.objects.count(),
+				"products_total": Product.objects.count(),
+				"products_low_stock": Product.objects.filter(stock__lte=5).count(),
+				"purchases_total": Purchase.objects.count(),
+				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
+				"purchases_total_value": Purchase.objects.filter(status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
+				"sales_total": Sale.objects.count(),
+				"sales_today_total": Sale.objects.filter(date__date=now.date()).count(),
+				"sales_today_amount": Sale.objects.filter(date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
+				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
+				"movements_total": InventoryMovement.objects.count(),
+				"cash_entries_total": CashBox.objects.count(),
+				"cash_income_month": CashBox.objects.filter(type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
+				"cash_expense_month": CashBox.objects.filter(type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"weekly_sales_labels": weekly_labels,
 				"weekly_sales_amounts": weekly_amounts,
 			}
@@ -218,24 +195,24 @@ def dashboard_view(request):
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
-				"ventas_hoy": Sale.objects.filter(company=company, date__date=now.date()).count(),
-				"ventas_mes": Sale.objects.filter(company=company, date__gte=month_start).count(),
-				"ingresos_hoy": Sale.objects.filter(company=company, status=Sale.STATUS_CONFIRMED, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
-				"caja_mes": CashBox.objects.filter(company=company, date__gte=month_start, type=CashBox.TYPE_INCOME).aggregate(Sum("amount"))["amount__sum"] or 0,
-				"ultimas_ventas": Sale.objects.filter(company=company).select_related("client").all()[:5],
-				"clientes_total": Client.objects.filter(company=company).count(),
+				"ventas_hoy": Sale.objects.filter(seller=user, date__date=now.date()).count(),
+				"ventas_mes": Sale.objects.filter(seller=user, date__gte=month_start).count(),
+				"ingresos_hoy": Sale.objects.filter(seller=user, status=Sale.STATUS_CONFIRMED, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
+				"caja_mes": CashBox.objects.filter(date__gte=month_start, type=CashBox.TYPE_INCOME, reference=CashBox.REFERENCE_SALE).aggregate(Sum("amount"))["amount__sum"] or 0,
+				"ultimas_ventas": Sale.objects.filter(seller=user).select_related("client").all()[:5],
+				"clientes_total": Client.objects.count(),
 			}
 		)
 	elif user.is_almacen:
 		now = timezone.localtime()
 		context.update(
 			{
-				"productos_total": Product.objects.filter(company=company).count(),
-				"stock_bajo": Product.objects.filter(company=company, stock__lte=5).count(),
-				"purchases_total": Purchase.objects.filter(company=company).count(),
-				"purchases_pending": Purchase.objects.filter(company=company, status="pendiente").count(),
-				"movements_total": InventoryMovement.objects.filter(company=company).count(),
-				"entradas_hoy": InventoryMovement.objects.filter(company=company, type="IN", date__date=now.date()).count(),
+				"productos_total": Product.objects.count(),
+				"stock_bajo": Product.objects.filter(stock__lte=5).count(),
+				"purchases_total": Purchase.objects.count(),
+				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
+				"movements_total": InventoryMovement.objects.count(),
+				"entradas_hoy": InventoryMovement.objects.filter(type="IN", date__date=now.date()).count(),
 			}
 		)
 

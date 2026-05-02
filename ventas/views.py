@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
 
 from config.pdf_utils import render_to_pdf
-from empresas.mixins import CompanyQuerysetMixin
+from empresas.models import Company
 from productos.models import Product
 from .forms import SaleDetailFormSet, SaleForm
 from .models import Sale
@@ -19,7 +19,7 @@ class SalesAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return self.request.user.is_admin or self.request.user.is_vendedor
 
 
-class SaleListView(SalesAccessMixin, CompanyQuerysetMixin, ListView):
+class SaleListView(SalesAccessMixin, ListView):
 	model = Sale
 	template_name = "ventas/sale_list.html"
 	context_object_name = "sales"
@@ -38,7 +38,7 @@ class SaleListView(SalesAccessMixin, CompanyQuerysetMixin, ListView):
 		return context
 
 
-class SaleDetailView(SalesAccessMixin, CompanyQuerysetMixin, DetailView):
+class SaleDetailView(SalesAccessMixin, DetailView):
 	model = Sale
 	template_name = "ventas/sale_detail.html"
 	context_object_name = "sale"
@@ -49,31 +49,21 @@ class SaleDetailView(SalesAccessMixin, CompanyQuerysetMixin, DetailView):
 		return context
 
 
-class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
+class SaleCreateView(SalesAccessMixin, CreateView):
 	model = Sale
 	form_class = SaleForm
 	template_name = "ventas/sale_form.html"
 	success_url = reverse_lazy("ventas:list")
 
-	def get_form_kwargs(self):
-		kwargs = super().get_form_kwargs()
-		kwargs["company"] = getattr(self.request, "company", None) or getattr(self.request.user, "company", None)
-		return kwargs
-
 	@transaction.atomic
 	def post(self, request, *args, **kwargs):
 		self.object = None
-		company = getattr(request, "company", None) or getattr(request.user, "company", None)
-		if not company:
-			messages.error(request, "Tu usuario no tiene una empresa asociada para registrar ventas.")
-			return render(request, self.template_name, self.get_context_data(form=self.get_form(), formset=SaleDetailFormSet(instance=self.object)))
 		form = self.get_form()
 		formset = SaleDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
 			self.object = form.save(commit=False)
 			self.object.seller = request.user
-			self.object.company = company
 			self.object.save()
 			formset.instance = self.object
 			formset.save()
@@ -81,7 +71,7 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 
 			if self.object.status == self.object.STATUS_CONFIRMED:
 				from caja.models import CashBox
-				CashBox.validate_day_open(self.object.date, self.object.company)
+				CashBox.validate_day_open(self.object.date)
 				try:
 					self.object.apply_inventory_output()
 				except ValidationError as exc:
@@ -102,20 +92,22 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 			kwargs["formset"] = SaleDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
-		products_qs = Product.objects.select_related("brand", "category").filter(is_active=True)
-		if self.request.company:
-			products_qs = products_qs.filter(company=self.request.company)
+		products_qs = Product.objects.select_related(
+			"brand", "category", "formato", "acabado", "indicaciones_uso"
+		).filter(is_active=True)
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
 				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
-				"stock": product.stock,
-				"brand": product.brand.name,
+				"stock": float(product.stock),
+				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
-				"size": product.size,
 				"color": product.color,
+				"formato": product.formato.name if product.formato else "",
+				"acabado": product.acabado.name if product.acabado else "",
+				"indicaciones_uso": product.indicaciones_uso.name if product.indicaciones_uso else "",
 				"image": product.image.url if product.image else "",
 			}
 			for product in products_qs
@@ -123,16 +115,11 @@ class SaleCreateView(SalesAccessMixin, CompanyQuerysetMixin, CreateView):
 		return super().get_context_data(**kwargs)
 
 
-class SaleUpdateView(SalesAccessMixin, CompanyQuerysetMixin, UpdateView):
+class SaleUpdateView(SalesAccessMixin, UpdateView):
 	model = Sale
 	form_class = SaleForm
 	template_name = "ventas/sale_form.html"
 	success_url = reverse_lazy("ventas:list")
-
-	def get_form_kwargs(self):
-		kwargs = super().get_form_kwargs()
-		kwargs["company"] = self.request.company
-		return kwargs
 
 	def get(self, request, *args, **kwargs):
 		self.object = self.get_object()
@@ -161,7 +148,7 @@ class SaleUpdateView(SalesAccessMixin, CompanyQuerysetMixin, UpdateView):
 
 			if new_status == Sale.STATUS_CONFIRMED:
 				from caja.models import CashBox
-				CashBox.validate_day_open(self.object.date, self.object.company)
+				CashBox.validate_day_open(self.object.date)
 				try:
 					self.object.apply_inventory_output()
 				except ValidationError as exc:
@@ -181,20 +168,22 @@ class SaleUpdateView(SalesAccessMixin, CompanyQuerysetMixin, UpdateView):
 			kwargs["formset"] = SaleDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
-		products_qs = Product.objects.select_related("brand", "category").filter(is_active=True)
-		if self.request.company:
-			products_qs = products_qs.filter(company=self.request.company)
+		products_qs = Product.objects.select_related(
+			"brand", "category", "formato", "acabado", "indicaciones_uso"
+		).filter(is_active=True)
 		kwargs["products_data"] = [
 			{
 				"id": product.id,
 				"code": product.code or "",
 				"name": product.name,
 				"price": float(product.price),
-				"stock": product.stock,
-				"brand": product.brand.name,
+				"stock": float(product.stock),
+				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
-				"size": product.size,
 				"color": product.color,
+				"formato": product.formato.name if product.formato else "",
+				"acabado": product.acabado.name if product.acabado else "",
+				"indicaciones_uso": product.indicaciones_uso.name if product.indicaciones_uso else "",
 				"image": product.image.url if product.image else "",
 			}
 			for product in products_qs
@@ -203,7 +192,7 @@ class SaleUpdateView(SalesAccessMixin, CompanyQuerysetMixin, UpdateView):
 		return super().get_context_data(**kwargs)
 
 
-class SaleDeleteView(SalesAccessMixin, CompanyQuerysetMixin, DeleteView):
+class SaleDeleteView(SalesAccessMixin, DeleteView):
 	model = Sale
 	template_name = "ventas/sale_confirm_delete.html"
 	success_url = reverse_lazy("ventas:list")
@@ -228,7 +217,7 @@ class SaleDeleteView(SalesAccessMixin, CompanyQuerysetMixin, DeleteView):
 		if self.object.status == self.object.STATUS_CONFIRMED:
 			from caja.models import CashBox
 			try:
-				CashBox.validate_day_open(company=self.object.company)
+				CashBox.validate_day_open()
 			except ValidationError as exc:
 				messages.error(request, str(exc))
 				return redirect(self.success_url)
@@ -247,14 +236,12 @@ class SaleDeleteView(SalesAccessMixin, CompanyQuerysetMixin, DeleteView):
 
 class SalePDFView(SalesAccessMixin, View):
 	def get(self, request, pk, *args, **kwargs):
-		sale = Sale.objects.select_related("client", "company", "seller").get(pk=pk)
-		if request.company and sale.company_id != request.company.id:
-			return redirect("ventas:list")
+		sale = Sale.objects.select_related("client", "seller").get(pk=pk)
 		details = sale.saledetail_set.select_related("product").all()
 		context = {
 			"sale": sale,
 			"details": details,
-			"company": sale.company,
+			"company": Company.get_solo(),
 			"now": timezone.localtime(),
 		}
 		filename = f"venta_{sale.id}.pdf"

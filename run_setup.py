@@ -1,131 +1,63 @@
 #!/usr/bin/env python
 import os
-import django
 import sys
+
+import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 sys.path.insert(0, os.path.dirname(__file__))
 
 django.setup()
 
-# Importar después de django.setup()
-from empresas.models import Company
-from usuarios.models import Role, User
 from django.contrib.auth.hashers import make_password
 
-# Crear Empresa demo
-print("Creando empresa demo...")
-company, created = Company.objects.get_or_create(
-    name='Empresa Demo',
-    defaults={
-        'ruc_nit': '1234567890',
-        'address': 'Av. Principal 123',
-        'phone': '70000000',
-    }
-)
-print(f"✓ Empresa {'creada' if created else 'ya existía'}: {company.name}")
+from empresas.models import Company
+from usuarios.models import Role, User
 
-# Crear Roles
+
+print("Configurando negocio demo...")
+company = Company.get_solo()
+if not company:
+    company = Company.objects.create(
+        name='Porcelanatos Demo',
+        ruc_nit='1234567890',
+        address='Av. Principal 123',
+        city='Santa Cruz',
+        country='Bolivia',
+        phone='70000000',
+        currency='BOB',
+    )
+    print(f"✓ Negocio creado: {company.name}")
+else:
+    print(f"✓ Negocio existente: {company.name}")
+
 print("\nCreando roles...")
-admin_role, created = Role.objects.get_or_create(
-    name='admin',
-    defaults={
-        'description': 'Puede gestionar todos los modulos operativos y ver reportes'
-    }
-)
-print(f"✓ Rol Admin {'creado' if created else 'ya existía'}")
+admin_role, _ = Role.objects.get_or_create(name='admin', defaults={'description': 'Gestion operativa completa'})
+vendedor_role, _ = Role.objects.get_or_create(name='vendedor', defaults={'description': 'Gestion de ventas y clientes'})
+almacen_role, _ = Role.objects.get_or_create(name='almacen', defaults={'description': 'Gestion de inventario'})
+print("✓ Roles listos")
 
-vendedor_role, created = Role.objects.get_or_create(
-    name='vendedor',
-    defaults={
-        'description': 'Puede gestionar ventas y clientes'
-    }
-)
-print(f"✓ Rol Vendedor {'creado' if created else 'ya existía'}")
+print("\nCreando usuarios base...")
+users = [
+    ('superadmin', 'superadmin123', 'superadmin@example.com', 'Super', 'Usuario', admin_role, True, True),
+    ('admin', 'admin123', 'admin@example.com', 'Administrador', 'Operativo', admin_role, False, False),
+    ('vendedor', 'vendedor123', 'vendedor@example.com', 'Juan', 'Vendedor', vendedor_role, False, False),
+    ('almacen', 'almacen123', 'almacen@example.com', 'Pedro', 'Inventario', almacen_role, False, False),
+]
+for username, raw_password, email, first_name, last_name, role, is_staff, is_superuser in users:
+    User.objects.update_or_create(
+        username=username,
+        defaults={
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'role': role,
+            'is_staff': is_staff,
+            'is_superuser': is_superuser,
+            'is_active': True,
+            'password': make_password(raw_password),
+        },
+    )
+    print(f"✓ {username} / {raw_password}")
 
-almacen_role, created = Role.objects.get_or_create(
-    name='almacen',
-    defaults={
-        'description': 'Puede gestionar inventario y almacén'
-    }
-)
-print(f"✓ Rol Almacén {'creado' if created else 'ya existía'}")
-
-# Crear superusuario (sin empresa — acceso global)
-print("\nCreando usuarios de prueba...")
-superuser, created = User.objects.update_or_create(
-    username='superadmin',
-    defaults={
-        'email': 'superadmin@example.com',
-        'first_name': 'Super',
-        'last_name': 'Usuario',
-        'role': admin_role,
-        'company': None,
-        'is_staff': True,
-        'is_superuser': True,
-        'is_active': True,
-        'password': make_password('superadmin123')
-    }
-)
-print(f"✓ Superusuario {'creado' if created else 'actualizado'} - Contraseña: superadmin123")
-
-# Crear usuario administrador operativo (con empresa)
-admin_user, created = User.objects.update_or_create(
-    username='admin',
-    defaults={
-        'email': 'admin@example.com',
-        'first_name': 'Administrador',
-        'last_name': 'Operativo',
-        'role': admin_role,
-        'company': company,
-        'is_staff': False,
-        'is_superuser': False,
-        'is_active': True,
-        'password': make_password('admin123')
-    }
-)
-print(f"✓ Usuario Admin {'creado' if created else 'actualizado'} - Contraseña: admin123")
-
-# Crear usuario vendedor
-vendedor_user, created = User.objects.update_or_create(
-    username='vendedor',
-    defaults={
-        'email': 'vendedor@example.com',
-        'first_name': 'Juan',
-        'last_name': 'Vendedor',
-        'role': vendedor_role,
-        'company': company,
-        'is_active': True,
-        'password': make_password('vendedor123')
-    }
-)
-print(f"✓ Usuario Vendedor {'creado' if created else 'actualizado'} - Contraseña: vendedor123")
-
-# Crear usuario almacén
-almacen_user, created = User.objects.update_or_create(
-    username='almacen',
-    defaults={
-        'email': 'almacen@example.com',
-        'first_name': 'Pedro',
-        'last_name': 'Almacén',
-        'role': almacen_role,
-        'company': company,
-        'is_active': True,
-        'password': make_password('almacen123')
-    }
-)
-print(f"✓ Usuario Almacén {'creado' if created else 'actualizado'} - Contraseña: almacen123")
-
-print("\n" + "="*50)
-print("✅ DATOS INICIALES CREADOS EXITOSAMENTE")
-print("="*50)
-print(f"\n🏢 Empresa demo: {company.name}")
-print("\n📝 Credenciales de acceso al panel admin:")
-print("   URL: http://localhost:8000/admin/")
-print("\n   Superusuario (acceso global, sin empresa):")
-print("   → Usuario: superadmin")
-print("   → Contraseña: superadmin123")
-print(f"\n   Usuarios de la empresa '{company.name}':")
-print("   → admin / admin123")
-print("   → vendedor / vendedor123")
-print("   → almacen / almacen123")
+print("\nSetup completado")

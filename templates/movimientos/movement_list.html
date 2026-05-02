@@ -8,6 +8,11 @@
         <h1 class="h4 mb-0">Movimientos de inventario</h1>
         <p class="text-muted mb-0">Auditoría e historial de entradas y salidas</p>
     </div>
+    {% if request.user.is_admin %}
+    <a href="{% url 'movimientos:manual_create' %}" class="btn btn-dark">
+        <i class="fas fa-plus me-1"></i> Movimiento manual
+    </a>
+    {% endif %}
 </div>
 
 <div class="card border-0 shadow-sm mb-3">

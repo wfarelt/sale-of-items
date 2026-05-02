@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimiento manual{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-4">Registrar movimiento manual</h1>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label" for="id_type">Tipo <span class="text-danger">*</span></label>
+                            {{ form.type }}
+                            <div class="text-danger small mt-1">{{ form.type.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_reference">Referencia</label>
+                            {{ form.reference }}
+                            <div class="form-text">Si se deja vacío se generará automáticamente.</div>
+                            <div class="text-danger small mt-1">{{ form.reference.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="id_description">Descripción <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                            <div class="text-danger small mt-1">{{ form.description.errors|striptags }}</div>
+                        </div>
+                    </div>
+
+                    {% if formset.non_form_errors %}
+                        <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
+                    {% endif %}
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th style="width: 140px;">Cantidad</th>
+                                    <th style="width: 90px;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="formset-tbody">
+                                {% for detail_form in formset %}
+                                <tr class="formset-row{% if detail_form.DELETE.value %} d-none{% endif %}">
+                                    <td>
+                                        {{ detail_form.product }}
+                                        <div class="text-danger small mt-1">{{ detail_form.product.errors|striptags }}</div>
+                                    </td>
+                                    <td>
+                                        {{ detail_form.quantity }}
+                                        <div class="text-danger small mt-1">{{ detail_form.quantity.errors|striptags }}</div>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        {{ detail_form.DELETE }}
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                    <td class="d-none">{{ detail_form.id }}{{ detail_form.ORDER }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <template id="empty-form-template">
+                        <tr class="formset-row">
+                            <td>{{ formset.empty_form.product }}</td>
+                            <td>{{ formset.empty_form.quantity }}</td>
+                            <td class="text-center align-middle">
+                                {{ formset.empty_form.DELETE }}
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
+                            </td>
+                            <td class="d-none">{{ formset.empty_form.id }}{{ formset.empty_form.ORDER }}</td>
+                        </tr>
+                    </template>
+
+                    {{ formset.management_form }}
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" id="btn-add-row" class="btn btn-outline-dark btn-sm">
+                            <i class="fas fa-plus me-1"></i> Agregar producto
+                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'movimientos:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-dark">Guardar movimiento</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tbody = document.querySelector('.formset-tbody');
+    const totalFormsInput = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
+    const addRowButton = document.getElementById('btn-add-row');
+    const emptyTemplate = document.getElementById('empty-form-template');
+
+    function visibleRows() {
+        return Array.from(document.querySelectorAll('.formset-row')).filter(row => !row.classList.contains('d-none'));
+    }
+
+    function addRow() {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const html = emptyTemplate.innerHTML.replaceAll('__prefix__', formIndex);
+        const temp = document.createElement('tbody');
+        temp.innerHTML = html.trim();
+        const row = temp.firstElementChild;
+        tbody.appendChild(row);
+        totalFormsInput.value = formIndex + 1;
+        hideDeleteInputs();
+    }
+
+    function removeRow(button) {
+        const row = button.closest('.formset-row');
+        if (!row) {
+            return;
+        }
+        const deleteInput = row.querySelector('input[name*="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+        }
+        row.classList.add('d-none');
+        if (visibleRows().length === 0) {
+            addRow();
+        }
+    }
+
+    function hideDeleteInputs() {
+        document.querySelectorAll('input[name*="-DELETE"]').forEach(function(input) {
+            input.classList.add('d-none');
+        });
+    }
+
+    addRowButton.addEventListener('click', addRow);
+
+    document.addEventListener('click', function(e) {
+        const removeButton = e.target.closest('.btn-remove-row');
+        if (removeButton) {
+            removeRow(removeButton);
+        }
+    });
+
+    hideDeleteInputs();
+});
+</script>
+{% endblock %}

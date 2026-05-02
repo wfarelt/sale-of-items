@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Brand, Category, Product
+from .models import Acabado, Brand, Category, Formato, IndicacionesUso, M2Caja, Product
 
 
 class ProductForm(forms.ModelForm):
@@ -33,11 +33,11 @@ class ProductForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "stock": forms.NumberInput(attrs={"class": "form-control"}),
-            "formato": forms.TextInput(attrs={"class": "form-control"}),
-            "indicaciones_uso": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
-            "metros_cuadrados_por_caja": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "acabado": forms.TextInput(attrs={"class": "form-control"}),
+            "stock": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "formato": forms.Select(attrs={"class": "form-select"}),
+            "indicaciones_uso": forms.Select(attrs={"class": "form-select"}),
+            "metros_cuadrados_por_caja": forms.Select(attrs={"class": "form-select"}),
+            "acabado": forms.Select(attrs={"class": "form-select"}),
             "color": forms.TextInput(attrs={"class": "form-control"}),
             "brand": forms.Select(attrs={"class": "form-select"}),
             "category": forms.Select(attrs={"class": "form-select"}),
@@ -46,15 +46,20 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
-        self.company = kwargs.pop("company", None)
         super().__init__(*args, **kwargs)
         brand_qs = Brand.objects.filter(is_active=True).order_by("name")
         category_qs = Category.objects.filter(is_active=True).order_by("name")
-        if self.company:
-            brand_qs = brand_qs.filter(company=self.company)
-            category_qs = category_qs.filter(company=self.company)
+        formato_qs = Formato.objects.filter(is_active=True).order_by("name")
+        acabado_qs = Acabado.objects.filter(is_active=True).order_by("name")
+        indicaciones_qs = IndicacionesUso.objects.filter(is_active=True).order_by("name")
+        m2caja_qs = M2Caja.objects.filter(is_active=True).order_by("value")
+        
         self.fields["brand"].queryset = brand_qs
         self.fields["category"].queryset = category_qs
+        self.fields["formato"].queryset = formato_qs
+        self.fields["acabado"].queryset = acabado_qs
+        self.fields["indicaciones_uso"].queryset = indicaciones_qs
+        self.fields["metros_cuadrados_por_caja"].queryset = m2caja_qs
 
         user_can_manage_values = bool(
             self.user and self.user.is_authenticated and (self.user.is_admin or self.user.is_almacen)
@@ -82,6 +87,46 @@ class CategoryForm(forms.ModelForm):
         model = Category
         fields = ["name"]
         widgets = {"name": forms.TextInput(attrs={"class": "form-control"})}
+
+
+class BrandForm(forms.ModelForm):
+    class Meta:
+        model = Brand
+        fields = ["name"]
+        widgets = {"name": forms.TextInput(attrs={"class": "form-control"})}
+
+
+class FormatoForm(forms.ModelForm):
+    class Meta:
+        model = Formato
+        fields = ["name"]
+        widgets = {"name": forms.TextInput(attrs={"class": "form-control"})}
+
+
+class AcabadoForm(forms.ModelForm):
+    class Meta:
+        model = Acabado
+        fields = ["name"]
+        widgets = {"name": forms.TextInput(attrs={"class": "form-control"})}
+
+
+class IndicacionesUsoForm(forms.ModelForm):
+    class Meta:
+        model = IndicacionesUso
+        fields = ["name", "description"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+
+class M2CajaForm(forms.ModelForm):
+    class Meta:
+        model = M2Caja
+        fields = ["value"]
+        widgets = {
+            "value": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+        }
 
 
 class BrandForm(forms.ModelForm):

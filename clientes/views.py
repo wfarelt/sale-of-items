@@ -8,7 +8,6 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from empresas.mixins import CompanyQuerysetMixin
 from .forms import ClientForm
 from .models import Client
 
@@ -19,7 +18,7 @@ class ClientAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return user.is_admin or user.is_vendedor
 
 
-class ClientListView(ClientAccessMixin, CompanyQuerysetMixin, ListView):
+class ClientListView(ClientAccessMixin, ListView):
 	model = Client
 	template_name = "clientes/client_list.html"
 	context_object_name = "clients"
@@ -45,21 +44,21 @@ class ClientListView(ClientAccessMixin, CompanyQuerysetMixin, ListView):
 		return context
 
 
-class ClientCreateView(ClientAccessMixin, CompanyQuerysetMixin, CreateView):
+class ClientCreateView(ClientAccessMixin, CreateView):
 	model = Client
 	form_class = ClientForm
 	template_name = "clientes/client_form.html"
 	success_url = reverse_lazy("clientes:list")
 
 
-class ClientUpdateView(ClientAccessMixin, CompanyQuerysetMixin, UpdateView):
+class ClientUpdateView(ClientAccessMixin, UpdateView):
 	model = Client
 	form_class = ClientForm
 	template_name = "clientes/client_form.html"
 	success_url = reverse_lazy("clientes:list")
 
 
-class ClientDeleteView(ClientAccessMixin, CompanyQuerysetMixin, DeleteView):
+class ClientDeleteView(ClientAccessMixin, DeleteView):
 	model = Client
 	template_name = "clientes/client_confirm_delete.html"
 	success_url = reverse_lazy("clientes:list")
@@ -79,8 +78,6 @@ class ClientLookupView(ClientAccessMixin, View):
 	def get(self, request, *args, **kwargs):
 		query = request.GET.get("q", "").strip()
 		clients_qs = Client.objects.filter(is_active=True)
-		if request.company:
-			clients_qs = clients_qs.filter(company=request.company)
 
 		if query:
 			clients_qs = clients_qs.filter(
@@ -119,15 +116,8 @@ class ClientQuickCreateView(ClientAccessMixin, View):
 				status=400,
 			)
 
-		if not request.company:
-			return JsonResponse(
-				{"ok": False, "message": "No se encontro la empresa activa para crear el cliente."},
-				status=400,
-			)
-
 		try:
 			client = Client.objects.create(
-				company=request.company,
 				name=name,
 				nit_ci=nit_ci,
 				phone=phone,
@@ -137,7 +127,7 @@ class ClientQuickCreateView(ClientAccessMixin, View):
 			)
 		except IntegrityError:
 			return JsonResponse(
-				{"ok": False, "message": "Ya existe un cliente con ese NIT/CI en esta empresa."},
+				{"ok": False, "message": "Ya existe un cliente con ese NIT/CI."},
 				status=400,
 			)
 

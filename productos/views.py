@@ -5,9 +5,16 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from empresas.mixins import CompanyQuerysetMixin
-from .forms import BrandForm, CategoryForm, ProductForm
-from .models import Brand, Category, Product
+from .forms import (
+	AcabadoForm,
+	BrandForm,
+	CategoryForm,
+	FormatoForm,
+	IndicacionesUsoForm,
+	M2CajaForm,
+	ProductForm,
+)
+from .models import Acabado, Brand, Category, Formato, IndicacionesUso, M2Caja, Product
 
 
 class InventoryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -16,7 +23,7 @@ class InventoryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 		return user.is_admin or user.is_almacen
 
 
-class ProductListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
+class ProductListView(InventoryAccessMixin, ListView):
 	model = Product
 	template_name = "productos/product_list.html"
 	context_object_name = "products"
@@ -43,7 +50,7 @@ class ProductListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
 		return context
 
 
-class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
+class ProductCreateView(InventoryAccessMixin, CreateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
@@ -52,11 +59,10 @@ class ProductCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()
 		kwargs["user"] = self.request.user
-		kwargs["company"] = self.request.company
 		return kwargs
 
 
-class ProductUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
+class ProductUpdateView(InventoryAccessMixin, UpdateView):
 	model = Product
 	form_class = ProductForm
 	template_name = "productos/product_form.html"
@@ -65,11 +71,10 @@ class ProductUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
 	def get_form_kwargs(self):
 		kwargs = super().get_form_kwargs()
 		kwargs["user"] = self.request.user
-		kwargs["company"] = self.request.company
 		return kwargs
 
 
-class ProductDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
+class ProductDeleteView(InventoryAccessMixin, DeleteView):
 	model = Product
 	template_name = "productos/product_confirm_delete.html"
 	success_url = reverse_lazy("productos:list")
@@ -85,27 +90,27 @@ class ProductDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
 		return redirect(self.success_url)
 
 
-class CategoryListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
+class CategoryListView(InventoryAccessMixin, ListView):
 	model = Category
 	template_name = "productos/category_list.html"
 	context_object_name = "categories"
 
 
-class CategoryCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
+class CategoryCreateView(InventoryAccessMixin, CreateView):
 	model = Category
 	form_class = CategoryForm
 	template_name = "productos/category_form.html"
 	success_url = reverse_lazy("productos:categories")
 
 
-class CategoryUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
+class CategoryUpdateView(InventoryAccessMixin, UpdateView):
 	model = Category
 	form_class = CategoryForm
 	template_name = "productos/category_form.html"
 	success_url = reverse_lazy("productos:categories")
 
 
-class CategoryDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
+class CategoryDeleteView(InventoryAccessMixin, DeleteView):
 	model = Category
 	template_name = "productos/category_confirm_delete.html"
 	success_url = reverse_lazy("productos:categories")
@@ -122,27 +127,27 @@ class CategoryDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView)
 
 
 
-class BrandListView(InventoryAccessMixin, CompanyQuerysetMixin, ListView):
+class BrandListView(InventoryAccessMixin, ListView):
 	model = Brand
 	template_name = "productos/brand_list.html"
 	context_object_name = "brands"
 
 
-class BrandCreateView(InventoryAccessMixin, CompanyQuerysetMixin, CreateView):
+class BrandCreateView(InventoryAccessMixin, CreateView):
 	model = Brand
 	form_class = BrandForm
 	template_name = "productos/brand_form.html"
 	success_url = reverse_lazy("productos:brands")
 
 
-class BrandUpdateView(InventoryAccessMixin, CompanyQuerysetMixin, UpdateView):
+class BrandUpdateView(InventoryAccessMixin, UpdateView):
 	model = Brand
 	form_class = BrandForm
 	template_name = "productos/brand_form.html"
 	success_url = reverse_lazy("productos:brands")
 
 
-class BrandDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
+class BrandDeleteView(InventoryAccessMixin, DeleteView):
 	model = Brand
 	template_name = "productos/brand_confirm_delete.html"
 	success_url = reverse_lazy("productos:brands")
@@ -151,6 +156,155 @@ class BrandDeleteView(InventoryAccessMixin, CompanyQuerysetMixin, DeleteView):
 		self.object = self.get_object()
 		self.object.is_active = not self.object.is_active
 		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Marca activada correctamente.")
+		else:
+			messages.warning(request, "Marca desactivada correctamente.")
+		return redirect(self.success_url)
+
+
+class FormatoListView(InventoryAccessMixin, ListView):
+	model = Formato
+	template_name = "productos/formato_list.html"
+	context_object_name = "formatos"
+
+
+class FormatoCreateView(InventoryAccessMixin, CreateView):
+	model = Formato
+	form_class = FormatoForm
+	template_name = "productos/formato_form.html"
+	success_url = reverse_lazy("productos:formatos")
+
+
+class FormatoUpdateView(InventoryAccessMixin, UpdateView):
+	model = Formato
+	form_class = FormatoForm
+	template_name = "productos/formato_form.html"
+	success_url = reverse_lazy("productos:formatos")
+
+
+class FormatoDeleteView(InventoryAccessMixin, DeleteView):
+	model = Formato
+	template_name = "productos/formato_confirm_delete.html"
+	success_url = reverse_lazy("productos:formatos")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Formato activado correctamente.")
+		else:
+			messages.warning(request, "Formato desactivado correctamente.")
+		return redirect(self.success_url)
+
+
+class AcabadoListView(InventoryAccessMixin, ListView):
+	model = Acabado
+	template_name = "productos/acabado_list.html"
+	context_object_name = "acabados"
+
+
+class AcabadoCreateView(InventoryAccessMixin, CreateView):
+	model = Acabado
+	form_class = AcabadoForm
+	template_name = "productos/acabado_form.html"
+	success_url = reverse_lazy("productos:acabados")
+
+
+class AcabadoUpdateView(InventoryAccessMixin, UpdateView):
+	model = Acabado
+	form_class = AcabadoForm
+	template_name = "productos/acabado_form.html"
+	success_url = reverse_lazy("productos:acabados")
+
+
+class AcabadoDeleteView(InventoryAccessMixin, DeleteView):
+	model = Acabado
+	template_name = "productos/acabado_confirm_delete.html"
+	success_url = reverse_lazy("productos:acabados")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Acabado activado correctamente.")
+		else:
+			messages.warning(request, "Acabado desactivado correctamente.")
+		return redirect(self.success_url)
+
+
+class IndicacionesUsoListView(InventoryAccessMixin, ListView):
+	model = IndicacionesUso
+	template_name = "productos/indicaciones_uso_list.html"
+	context_object_name = "indicaciones"
+
+
+class IndicacionesUsoCreateView(InventoryAccessMixin, CreateView):
+	model = IndicacionesUso
+	form_class = IndicacionesUsoForm
+	template_name = "productos/indicaciones_uso_form.html"
+	success_url = reverse_lazy("productos:indicaciones")
+
+
+class IndicacionesUsoUpdateView(InventoryAccessMixin, UpdateView):
+	model = IndicacionesUso
+	form_class = IndicacionesUsoForm
+	template_name = "productos/indicaciones_uso_form.html"
+	success_url = reverse_lazy("productos:indicaciones")
+
+
+class IndicacionesUsoDeleteView(InventoryAccessMixin, DeleteView):
+	model = IndicacionesUso
+	template_name = "productos/indicaciones_uso_confirm_delete.html"
+	success_url = reverse_lazy("productos:indicaciones")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "Indicaciones de uso activadas correctamente.")
+		else:
+			messages.warning(request, "Indicaciones de uso desactivadas correctamente.")
+		return redirect(self.success_url)
+
+
+class M2CajaListView(InventoryAccessMixin, ListView):
+	model = M2Caja
+	template_name = "productos/m2caja_list.html"
+	context_object_name = "m2cajas"
+
+
+class M2CajaCreateView(InventoryAccessMixin, CreateView):
+	model = M2Caja
+	form_class = M2CajaForm
+	template_name = "productos/m2caja_form.html"
+	success_url = reverse_lazy("productos:m2cajas")
+
+
+class M2CajaUpdateView(InventoryAccessMixin, UpdateView):
+	model = M2Caja
+	form_class = M2CajaForm
+	template_name = "productos/m2caja_form.html"
+	success_url = reverse_lazy("productos:m2cajas")
+
+
+class M2CajaDeleteView(InventoryAccessMixin, DeleteView):
+	model = M2Caja
+	template_name = "productos/m2caja_confirm_delete.html"
+	success_url = reverse_lazy("productos:m2cajas")
+
+	def post(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		self.object.is_active = not self.object.is_active
+		self.object.save(update_fields=["is_active"])
+		if self.object.is_active:
+			messages.success(request, "m² por caja activado correctamente.")
+		else:
+			messages.warning(request, "m² por caja desactivado correctamente.")
+		return redirect(self.success_url)
 		if self.object.is_active:
 			messages.success(request, "Marca activada correctamente.")
 		else:

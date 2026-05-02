@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Configuracion de Empresa{% endblock %}
+{% block title %}Configuracion del Negocio{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-lg-9">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h4 mb-3">Configuracion de empresa</h1>
+                <h1 class="h4 mb-3">Configuracion del negocio</h1>
 
                 <form method="post" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
@@ -64,9 +64,9 @@
                         </div>
                         <div class="col-md-8">
                             <label class="form-label" for="{{ form.logo.id_for_label }}">Logo</label>
-                            {% if request.company.logo %}
+                            {% if object.logo %}
                             <div class="mb-2">
-                                <img src="{{ request.company.logo.url }}" alt="Logo actual" class="img-thumbnail" style="max-height:120px;">
+                                <img src="{{ object.logo.url }}" alt="Logo actual" class="img-thumbnail" style="max-height:120px;">
                             </div>
                             {% endif %}
                             {{ form.logo }}

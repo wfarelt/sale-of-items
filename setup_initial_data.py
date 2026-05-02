@@ -5,11 +5,26 @@ O: python manage.py shell
     >>> exec(open('setup_initial_data.py').read())
 """
 
-from usuarios.models import Role, User
-from django.contrib.auth.hashers import make_password
-from clientes.models import Client
-from productos.models import Brand, Category, Product
 from decimal import Decimal
+
+from django.contrib.auth.hashers import make_password
+
+from clientes.models import Client
+from empresas.models import Company
+from productos.models import Brand, Category, Product
+from usuarios.models import Role, User
+
+company = Company.get_solo()
+if not company:
+    company = Company.objects.create(
+        name='Porcelanatos Demo',
+        ruc_nit='1234567890',
+        address='Av. Principal 123',
+        city='Santa Cruz',
+        country='Bolivia',
+        phone='70000000',
+        currency='BOB',
+    )
 
 # Crear Roles
 print("Creando roles...")
@@ -103,11 +118,11 @@ print("👥 CREANDO CLIENTES (5)...")
 print("=" * 60)
 
 clientes_data = [
-    {'name': 'Tienda Sport Central', 'email': 'tienda1@email.com', 'phone': '5551234567', 'nit_ci': 'NIT-001'},
-    {'name': 'Distribuidora Deportiva Plus', 'email': 'tienda2@email.com', 'phone': '5559876543', 'nit_ci': 'NIT-002'},
-    {'name': 'Zapatería Elite', 'email': 'tienda3@email.com', 'phone': '5552468135', 'nit_ci': 'NIT-003'},
-    {'name': 'Ropa Deportiva Total', 'email': 'tienda4@email.com', 'phone': '5553691357', 'nit_ci': 'NIT-004'},
-    {'name': 'Mega Sport Store', 'email': 'tienda5@email.com', 'phone': '5557418529', 'nit_ci': 'NIT-005'},
+    {'name': 'Constructora Andina', 'email': 'cliente1@email.com', 'phone': '5551234567', 'nit_ci': 'NIT-001'},
+    {'name': 'Arquitectura Norte', 'email': 'cliente2@email.com', 'phone': '5559876543', 'nit_ci': 'NIT-002'},
+    {'name': 'Ferretería Central', 'email': 'cliente3@email.com', 'phone': '5552468135', 'nit_ci': 'NIT-003'},
+    {'name': 'Diseño y Acabados', 'email': 'cliente4@email.com', 'phone': '5553691357', 'nit_ci': 'NIT-004'},
+    {'name': 'Remodelaciones Sur', 'email': 'cliente5@email.com', 'phone': '5557418529', 'nit_ci': 'NIT-005'},
 ]
 
 for data in clientes_data:
@@ -126,13 +141,7 @@ print("\n" + "=" * 60)
 print("🏷️  CREANDO MARCAS (5)...")
 print("=" * 60)
 
-marcas_data = [
-    'Nike',
-    'Adidas', 
-    'Puma',
-    'Reebok',
-    'Asics',
-]
+marcas_data = ['Cejatel', 'Portobello', 'Elizabeth', 'Cañadon', 'Incefra']
 
 for marca_name in marcas_data:
     marca, created = Brand.objects.get_or_create(name=marca_name)
@@ -142,13 +151,7 @@ print("\n" + "=" * 60)
 print("📂 CREANDO CATEGORÍAS (5)...")
 print("=" * 60)
 
-categorias_data = [
-    'Calzado Deportivo',
-    'Camisetas y Tops',
-    'Pantalones y Shorts',
-    'Accesorios',
-    'Ropa de Abrigo',
-]
+categorias_data = ['Piso Interior', 'Muro Interior', 'Exterior', 'Baño', 'Decorativo']
 
 categorias = {}
 for cat_name in categorias_data:
@@ -164,16 +167,16 @@ print("=" * 60)
 marcas_dict = {marca.name: marca for marca in Brand.objects.all()}
 
 productos_data = [
-    {'name': 'Zapatilla Running Ultralight', 'category': 'Calzado Deportivo', 'brand': 'Nike', 'price': Decimal('119.99'), 'stock': 45, 'code': 'PROD-001', 'size': 'M', 'color': 'Negro'},
-    {'name': 'Botín Football Pro', 'category': 'Calzado Deportivo', 'brand': 'Adidas', 'price': Decimal('159.99'), 'stock': 30, 'code': 'PROD-002', 'size': 'L', 'color': 'Blanco'},
-    {'name': 'Zapatilla Casual Urbana', 'category': 'Calzado Deportivo', 'brand': 'Puma', 'price': Decimal('99.99'), 'stock': 50, 'code': 'PROD-003', 'size': 'M', 'color': 'Gris'},
-    {'name': 'Camiseta Técnica Transpirable', 'category': 'Camisetas y Tops', 'brand': 'Nike', 'price': Decimal('44.99'), 'stock': 80, 'code': 'PROD-004', 'size': 'M', 'color': 'Azul'},
-    {'name': 'Camiseta Básica Deportiva', 'category': 'Camisetas y Tops', 'brand': 'Adidas', 'price': Decimal('34.99'), 'stock': 100, 'code': 'PROD-005', 'size': 'L', 'color': 'Blanco'},
-    {'name': 'Short Entrenamiento Ligero', 'category': 'Pantalones y Shorts', 'brand': 'Reebok', 'price': Decimal('49.99'), 'stock': 60, 'code': 'PROD-006', 'size': 'M', 'color': 'Negro'},
-    {'name': 'Pantalón Deportivo Clásico', 'category': 'Pantalones y Shorts', 'brand': 'Asics', 'price': Decimal('79.99'), 'stock': 40, 'code': 'PROD-007', 'size': 'L', 'color': 'Gris'},
-    {'name': 'Mochila Deportiva 25L', 'category': 'Accesorios', 'brand': 'Nike', 'price': Decimal('89.99'), 'stock': 35, 'code': 'PROD-008', 'size': 'M', 'color': 'Negro'},
-    {'name': 'Sudadera Hoodie Premium', 'category': 'Ropa de Abrigo', 'brand': 'Adidas', 'price': Decimal('99.99'), 'stock': 25, 'code': 'PROD-009', 'size': 'L', 'color': 'Gris'},
-    {'name': 'Chaqueta Cortaviento Impermeable', 'category': 'Ropa de Abrigo', 'brand': 'Puma', 'price': Decimal('129.99'), 'stock': 20, 'code': 'PROD-010', 'size': 'XL', 'color': 'Rojo'},
+    {'name': 'Porcelanato Cemento Gris 60x60', 'category': 'Piso Interior', 'brand': 'Cejatel', 'price': Decimal('89.90'), 'stock': 45, 'code': 'POR-001', 'formato': '60x60', 'acabado': 'Mate', 'color': 'Gris', 'm2': Decimal('1.44')},
+    {'name': 'Porcelanato Mármol Blanco 60x120', 'category': 'Piso Interior', 'brand': 'Portobello', 'price': Decimal('139.90'), 'stock': 30, 'code': 'POR-002', 'formato': '60x120', 'acabado': 'Pulido', 'color': 'Blanco', 'm2': Decimal('1.44')},
+    {'name': 'Revestimiento Arena Beige 30x60', 'category': 'Muro Interior', 'brand': 'Elizabeth', 'price': Decimal('74.90'), 'stock': 50, 'code': 'POR-003', 'formato': '30x60', 'acabado': 'Mate', 'color': 'Beige', 'm2': Decimal('1.62')},
+    {'name': 'Porcelanato Terra Grafito 75x75', 'category': 'Exterior', 'brand': 'Incefra', 'price': Decimal('119.90'), 'stock': 22, 'code': 'POR-004', 'formato': '75x75', 'acabado': 'Antideslizante', 'color': 'Grafito', 'm2': Decimal('1.13')},
+    {'name': 'Revestimiento Calacatta 30x90', 'category': 'Baño', 'brand': 'Cañadon', 'price': Decimal('99.90'), 'stock': 35, 'code': 'POR-005', 'formato': '30x90', 'acabado': 'Brillante', 'color': 'Blanco', 'm2': Decimal('1.35')},
+    {'name': 'Porcelanato Roble Natural 20x120', 'category': 'Piso Interior', 'brand': 'Elizabeth', 'price': Decimal('129.90'), 'stock': 28, 'code': 'POR-006', 'formato': '20x120', 'acabado': 'Mate', 'color': 'Madera', 'm2': Decimal('1.44')},
+    {'name': 'Mosaico Hexagonal Negro 25x29', 'category': 'Decorativo', 'brand': 'Portobello', 'price': Decimal('109.90'), 'stock': 18, 'code': 'POR-007', 'formato': '25x29', 'acabado': 'Mate', 'color': 'Negro', 'm2': Decimal('0.96')},
+    {'name': 'Porcelanato Concreto Humo 90x90', 'category': 'Piso Interior', 'brand': 'Cejatel', 'price': Decimal('149.90'), 'stock': 16, 'code': 'POR-008', 'formato': '90x90', 'acabado': 'Mate', 'color': 'Gris', 'm2': Decimal('1.62')},
+    {'name': 'Revestimiento Texturizado Arena 32x58', 'category': 'Muro Interior', 'brand': 'Incefra', 'price': Decimal('69.90'), 'stock': 42, 'code': 'POR-009', 'formato': '32x58', 'acabado': 'Texturizado', 'color': 'Arena', 'm2': Decimal('1.48')},
+    {'name': 'Porcelanato Piedra Ceniza 60x60', 'category': 'Exterior', 'brand': 'Cañadon', 'price': Decimal('94.90'), 'stock': 27, 'code': 'POR-010', 'formato': '60x60', 'acabado': 'Antideslizante', 'color': 'Ceniza', 'm2': Decimal('1.44')},
 ]
 
 for prod_data in productos_data:
@@ -189,9 +192,13 @@ for prod_data in productos_data:
                 'brand': marca,
                 'price': prod_data['price'],
                 'stock': prod_data['stock'],
-                'size': prod_data['size'],
+                'formato': prod_data['formato'],
+                'acabado': prod_data['acabado'],
                 'color': prod_data['color'],
-                'description': f"Producto deportivo de calidad {marca.name}",
+                'metros_cuadrados_por_caja': prod_data['m2'],
+                'stock_minimo': 8,
+                'indicaciones_uso': 'Uso recomendado en proyectos residenciales y comerciales.',
+                'description': f"Porcelanato de alta calidad marca {marca.name}",
             }
         )
         print(f"✓ {producto.name} - Bs {producto.price}")
@@ -210,6 +217,6 @@ print("   → Contraseña: admin123")
 print("\n   Vendedor:")
 print("   → Usuario: vendedor")
 print("   → Contraseña: vendedor123")
-print("\n   Almacén:")
+print("\n   Inventario:")
 print("   → Usuario: almacen")
 print("   → Contraseña: almacen123")

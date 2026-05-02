@@ -19,44 +19,50 @@
                             <div class="card border product-panel-card">
                                 <div class="card-body">
                                     <div class="row g-2 align-items-end mb-3">
-                                        <div class="col-md-6">
+                                        <div class="col-12">
                                             <label for="product-search" class="form-label">Buscar producto</label>
-                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, código, marca, color, categoria...">
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="filter-category" class="form-label">Categoria</label>
-                                            <select id="filter-category" class="form-select">
-                                                <option value="">Todas</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="filter-brand" class="form-label">Marca</label>
-                                            <select id="filter-brand" class="form-select">
-                                                <option value="">Todas</option>
-                                            </select>
+                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, código, marca, color, formato, acabado o categoría...">
                                         </div>
                                     </div>
 
                                     <div class="row g-2 align-items-end mb-3">
-                                        <div class="col-md-3">
-                                            <label for="filter-size" class="form-label">Talla</label>
-                                            <select id="filter-size" class="form-select">
-                                                <option value="">Todas</option>
+                                        <div class="col-md-2">
+                                            <label for="filter-formato" class="form-label">Formato</label>
+                                            <select id="filter-formato" class="form-select">
+                                                <option value="">Todos</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
+                                            <label for="filter-acabado" class="form-label">Acabado</label>
+                                            <select id="filter-acabado" class="form-select">
+                                                <option value="">Todos</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
                                             <label for="filter-color" class="form-label">Color</label>
                                             <select id="filter-color" class="form-select">
                                                 <option value="">Todos</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
+                                            <label for="filter-brand" class="form-label">Marca</label>
+                                            <select id="filter-brand" class="form-select">
+                                                <option value="">Todas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="filter-category" class="form-label">Categoría</label>
+                                            <select id="filter-category" class="form-select">
+                                                <option value="">Todas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
                                             <div class="form-check pt-4">
                                                 <input class="form-check-input" type="checkbox" id="filter-stock" checked>
                                                 <label class="form-check-label" for="filter-stock">Solo con stock</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3 text-md-end">
+                                        <div class="col-12 text-end">
                                             <small class="text-muted" id="product-result-count"></small>
                                         </div>
                                     </div>
@@ -299,10 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const saleDetailEmpty = document.getElementById('sale-detail-empty');
     const productCardList = document.getElementById('product-card-list');
     const productSearchInput = document.getElementById('product-search');
-    const filterCategory = document.getElementById('filter-category');
-    const filterBrand = document.getElementById('filter-brand');
-    const filterSize = document.getElementById('filter-size');
+    const filterFormato = document.getElementById('filter-formato');
+    const filterAcabado = document.getElementById('filter-acabado');
     const filterColor = document.getElementById('filter-color');
+    const filterBrand = document.getElementById('filter-brand');
+    const filterCategory = document.getElementById('filter-category');
     const filterStock = document.getElementById('filter-stock');
     const resultCount = document.getElementById('product-result-count');
     const productPagination = document.getElementById('product-pagination');
@@ -507,10 +514,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function activeFilters() {
         return {
             search: (productSearchInput.value || '').trim().toLowerCase(),
-            category: filterCategory.value,
-            brand: filterBrand.value,
-            size: filterSize.value,
+            formato: filterFormato.value,
+            acabado: filterAcabado.value,
             color: filterColor.value,
+            brand: filterBrand.value,
+            category: filterCategory.value,
             onlyStock: filterStock.checked,
         };
     }
@@ -518,16 +526,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterProducts() {
         const filters = activeFilters();
         return productsData.filter(product => {
-            if (filters.category && product.category !== filters.category) {
+            if (filters.formato && product.formato !== filters.formato) {
+                return false;
+            }
+            if (filters.acabado && product.acabado !== filters.acabado) {
+                return false;
+            }
+            if (filters.color && product.color !== filters.color) {
                 return false;
             }
             if (filters.brand && product.brand !== filters.brand) {
                 return false;
             }
-            if (filters.size && product.size !== filters.size) {
-                return false;
-            }
-            if (filters.color && product.color !== filters.color) {
+            if (filters.category && product.category !== filters.category) {
                 return false;
             }
             if (filters.onlyStock && product.stock <= 0) {
@@ -540,7 +551,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     product.brand,
                     product.category,
                     product.color,
-                    product.size,
+                    product.formato,
+                    product.acabado,
+                    product.indicaciones_uso,
                 ].join(' ').toLowerCase();
                 if (!text.includes(filters.search)) {
                     return false;
@@ -582,8 +595,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="product-card-body">
                             <div class="product-card-name">${product.name}</div>
                             ${product.code ? `<div class="product-card-meta text-secondary"><small>${product.code}</small></div>` : ''}
-                            <div class="product-card-meta">${product.brand} · ${product.category}</div>
-                            <div class="product-card-meta">Color: ${product.color || '-'} · Talla: ${product.size || '-'}</div>
+                            <div class="product-card-meta">${product.brand || '-'} · ${product.category || '-'}</div>
+                            <div class="product-card-meta">Formato: ${product.formato || '-'} · Acabado: ${product.acabado || '-'}</div>
+                            <div class="product-card-meta">Color: ${product.color || '-'}</div>
                             <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
                                 <span class="fw-bold">Bs ${parseFloat(product.price).toFixed(2)}</span>
                                 <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Stock: ${product.stock}</span>
@@ -676,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             const meta = productsMap.get(productSelect.value);
-            const qty = parseInt(quantityInput.value || '0', 10);
+            const qty = parseFloat(quantityInput.value || '0');
             if (meta && qty > meta.stock) {
                 valid = false;
                 row.classList.add('table-warning');
@@ -734,8 +748,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         productSelect.value = String(productId);
         row.classList.remove('row-hidden-empty');
-        if (quantityInput && (!quantityInput.value || parseInt(quantityInput.value, 10) <= 0)) {
-            quantityInput.value = 1;
+        if (quantityInput && (!quantityInput.value || parseFloat(quantityInput.value) <= 0)) {
+            quantityInput.value = '1.00';
         }
 
         updateRowFromProduct(row);
@@ -753,8 +767,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (existingRow) {
             const quantityInput = existingRow.querySelector('input[name*="-quantity"]');
-            const currentQty = parseInt(quantityInput.value || '0', 10);
-            quantityInput.value = currentQty > 0 ? currentQty + 1 : 1;
+            const currentQty = parseFloat(quantityInput.value || '0');
+            quantityInput.value = (currentQty > 0 ? currentQty + 1 : 1).toFixed(2);
             updateTotals();
             refreshValidation();
             return;
@@ -829,7 +843,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    [productSearchInput, filterCategory, filterBrand, filterSize, filterColor, filterStock].forEach(el => {
+    [productSearchInput, filterFormato, filterAcabado, filterColor, filterBrand, filterCategory, filterStock].forEach(el => {
         const eventName = el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change';
         el.addEventListener(eventName, function() {
             currentProductsPage = 1;
@@ -923,10 +937,11 @@ document.addEventListener('DOMContentLoaded', function() {
         hideClientResults();
     });
 
-    fillFilterOptions(filterCategory, uniqueSortedValues('category'));
-    fillFilterOptions(filterBrand, uniqueSortedValues('brand'));
-    fillFilterOptions(filterSize, uniqueSortedValues('size'));
+    fillFilterOptions(filterFormato, uniqueSortedValues('formato'));
+    fillFilterOptions(filterAcabado, uniqueSortedValues('acabado'));
     fillFilterOptions(filterColor, uniqueSortedValues('color'));
+    fillFilterOptions(filterBrand, uniqueSortedValues('brand'));
+    fillFilterOptions(filterCategory, uniqueSortedValues('category'));
     renderProductCards();
 
     document.querySelector('form').addEventListener('submit', function(e) {

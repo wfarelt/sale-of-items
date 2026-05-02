@@ -18,8 +18,12 @@ class Company(models.Model):
 
 	class Meta:
 		ordering = ['name']
-		verbose_name = 'Empresa'
-		verbose_name_plural = 'Empresas'
+		verbose_name = 'Negocio'
+		verbose_name_plural = 'Configuracion del negocio'
 
 	def __str__(self):
 		return self.name
+
+	@classmethod
+	def get_solo(cls):
+		return cls.objects.order_by('id').first()

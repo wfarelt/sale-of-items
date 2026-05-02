@@ -7,12 +7,8 @@ from .models import Sale, SaleDetail
 
 class SaleForm(forms.ModelForm):
 	def __init__(self, *args, **kwargs):
-		self.company = kwargs.pop("company", None)
 		super().__init__(*args, **kwargs)
-		client_qs = self.fields["client"].queryset.filter(is_active=True)
-		if self.company:
-			client_qs = client_qs.filter(company=self.company)
-		self.fields["client"].queryset = client_qs
+		self.fields["client"].queryset = self.fields["client"].queryset.filter(is_active=True)
 		self.fields["status"].choices = [
 			(Sale.STATUS_PROFORMA, "Proforma"),
 			(Sale.STATUS_CONFIRMED, "Confirmada"),
@@ -36,7 +32,7 @@ class SaleDetailForm(forms.ModelForm):
 		fields = ["product", "quantity", "price"]
 		widgets = {
 			"product": forms.Select(attrs={"class": "form-select"}),
-			"quantity": forms.NumberInput(attrs={"class": "form-control", "min": "1"}),
+			"quantity": forms.NumberInput(attrs={"class": "form-control", "min": "0.01", "step": "0.01"}),
 			"price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
 		}
 

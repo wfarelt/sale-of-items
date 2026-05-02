@@ -12,14 +12,14 @@ class PurchaseDetailInline(admin.TabularInline):
 
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-	list_display = ("id", "supplier", "date", "total", "status")
+	list_display = ("id", "supplier", "invoice_number", "date", "total", "status")
 	list_filter = ("status", "date")
-	search_fields = ("supplier",)
+	search_fields = ("supplier__nombre", "invoice_number")
 	readonly_fields = ("total", "created_at", "updated_at")
 	inlines = [PurchaseDetailInline]
 	fieldsets = (
 		("Información", {
-			"fields": ("supplier", "date", "status")
+			"fields": ("supplier", "invoice_number", "date", "status")
 		}),
 		("Detalles", {
 			"fields": ("total",)
