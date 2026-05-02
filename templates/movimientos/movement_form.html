@@ -18,13 +18,7 @@
                             {{ form.type }}
                             <div class="text-danger small mt-1">{{ form.type.errors|striptags }}</div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="id_reference">Referencia</label>
-                            {{ form.reference }}
-                            <div class="form-text">Si se deja vacío se generará automáticamente.</div>
-                            <div class="text-danger small mt-1">{{ form.reference.errors|striptags }}</div>
-                        </div>
-                        <div class="col-md-5">
+                        <div class="col-md-9">
                             <label class="form-label" for="id_description">Descripción <span class="text-danger">*</span></label>
                             {{ form.description }}
                             <div class="text-danger small mt-1">{{ form.description.errors|striptags }}</div>

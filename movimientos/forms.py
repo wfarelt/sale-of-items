@@ -10,19 +10,15 @@ from .models import InventoryMovement, InventoryMovementDetail
 class InventoryMovementManualForm(forms.ModelForm):
     class Meta:
         model = InventoryMovement
-        fields = ["type", "description", "reference"]
+        fields = ["type", "description"]
         widgets = {
             "type": forms.Select(attrs={"class": "form-select"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "reference": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej: Ajuste por inventario fisico"}
-            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["description"].required = True
-        self.fields["reference"].required = False
 
 
 class InventoryMovementDetailForm(forms.ModelForm):

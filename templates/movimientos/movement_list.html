@@ -55,6 +55,7 @@
                     <th>N° Movimiento</th>
                     <th>Tipo</th>
                     <th>Referencia</th>
+                    <th>Registrado por</th>
                     <th>Descripción</th>
                     <th class="text-end">Acciones</th>
                 </tr>
@@ -71,6 +72,13 @@
                         {% endif %}
                     </td>
                     <td>{{ movement.reference }}</td>
+                    <td>
+                        {% if movement.registered_by %}
+                            {{ movement.registered_by.get_full_name|default:movement.registered_by.username }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     <td>{{ movement.description|default:'-' }}</td>
                     <td class="text-end">
                         <a href="{% url 'movimientos:detail' movement.pk %}" class="btn btn-sm btn-outline-dark">
@@ -80,7 +88,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">No hay movimientos registrados.</td>
+                    <td colspan="6" class="text-center py-4 text-muted">No hay movimientos registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

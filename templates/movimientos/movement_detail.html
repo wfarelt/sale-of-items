@@ -36,6 +36,20 @@
     <div class="col-12 col-md-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
+                <small class="text-muted d-block">Registrado por</small>
+                <div class="fw-semibold">
+                    {% if movement.registered_by %}
+                        {{ movement.registered_by.get_full_name|default:movement.registered_by.username }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
                 <small class="text-muted d-block">Fecha</small>
                 <div class="fw-semibold">{{ movement.date|date:'d/m/Y H:i' }}</div>
             </div>

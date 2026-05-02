@@ -93,6 +93,10 @@
     <div class="value">{{ movement.date|date:"d/m/Y H:i" }}</div>
   </div>
   <div class="info-box">
+    <div class="label">Registrado por</div>
+    <div class="value">{% if movement.registered_by %}{{ movement.registered_by.get_full_name|default:movement.registered_by.username }}{% else %}-{% endif %}</div>
+  </div>
+  <div class="info-box">
     <div class="label">Total unidades</div>
     <div class="value">{{ movement.total_quantity }}</div>
   </div>

@@ -33,7 +33,7 @@ class InventoryMovementListView(InventoryAccessMixin, ListView):
 	paginate_by = 25
 
 	def get_queryset(self):
-		queryset = super().get_queryset().prefetch_related("details__product")
+		queryset = super().get_queryset().select_related("registered_by").prefetch_related("details__product")
 		search = self.request.GET.get("q", "").strip()
 		movement_type = self.request.GET.get("type", "").strip()
 		product_id = self.request.GET.get("product", "").strip()
@@ -88,10 +88,8 @@ class InventoryMovementManualCreateView(InventoryAdminAccessMixin, CreateView):
 
 		if form.is_valid() and formset.is_valid():
 			self.object = form.save(commit=False)
-			if not self.object.reference:
-				now = timezone.localtime().strftime("%d/%m/%Y %H:%M")
-				type_label = "Entrada" if self.object.type == InventoryMovement.TYPE_IN else "Salida"
-				self.object.reference = f"Manual {type_label} - {now}"
+			self.object.reference = "Ajuste por inventario"
+			self.object.registered_by = request.user
 			self.object.save()
 
 			formset.instance = self.object
@@ -119,12 +117,12 @@ class InventoryMovementDetailView(InventoryAccessMixin, DetailView):
 	context_object_name = "movement"
 
 	def get_queryset(self):
-		return super().get_queryset().prefetch_related("details__product")
+		return super().get_queryset().select_related("registered_by").prefetch_related("details__product")
 
 
 class InventoryMovementPDFView(InventoryAccessMixin, View):
 	def get(self, request, pk, *args, **kwargs):
-		movement = InventoryMovement.objects.prefetch_related("details__product").get(pk=pk)
+		movement = InventoryMovement.objects.select_related("registered_by").prefetch_related("details__product").get(pk=pk)
 		context = {
 			"movement": movement,
 			"company": Company.get_solo(),
