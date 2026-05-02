@@ -1,206 +1,354 @@
 {% extends 'base.html' %}
 
-{% block title %}Nueva venta{% endblock %}
+{% block title %}{% if is_edit %}Editar proforma #{{ object.id }}{% else %}Nueva venta{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 col-lg-10">
+    <div class="col-12 col-lg-11">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h4 mb-4">{% if is_edit %}Editar proforma #{{ object.id }}{% else %}Registrar nueva venta{% endif %}</h1>
 
-                <form method="post" novalidate>
+                {% if form.errors or formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        No se pudo guardar la venta. Revisa los campos marcados y vuelve a intentar.
+                    </div>
+                {% endif %}
+
+                <div
+                    id="server-error-flags"
+                    class="d-none"
+                    data-has-client-errors="{% if form.client.errors or form.payment_type.errors or form.status.errors %}1{% else %}0{% endif %}"
+                    data-has-product-errors="{% if formset.non_form_errors or formset.total_error_count %}1{% else %}0{% endif %}"
+                ></div>
+
+                <!-- Stepper pills -->
+                <div class="d-flex align-items-center gap-2 mb-4 flex-wrap" id="sale-stepper">
+                    <button type="button" class="btn step-pill step-pill-active" data-step="1">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Productos</span>
+                    </button>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <button type="button" class="btn step-pill" data-step="2" disabled>
+                        <span class="step-number">2</span>
+                        <span class="step-label">Cliente &amp; Pago</span>
+                    </button>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <button type="button" class="btn step-pill" data-step="3" disabled>
+                        <span class="step-number">3</span>
+                        <span class="step-label">Confirmación</span>
+                    </button>
+                </div>
+
+                <form method="post" novalidate id="sale-form">
                     {% csrf_token %}
 
-                    <div class="row g-4 mb-3">
-                        <div class="col-12 col-xl-7">
-                            <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
+                    <!-- ======== PASO 1: Productos ======== -->
+                    <div id="step-panel-1" class="step-panel">
+                        <div class="row g-4 mb-3">
+                            <div class="col-12 col-xl-6">
+                                <h5 class="mb-3">Productos <span class="text-danger">*</span></h5>
 
-                            <div class="card border product-panel-card">
-                                <div class="card-body">
-                                    <div class="row g-2 align-items-end mb-3">
-                                        <div class="col-12">
-                                            <label for="product-search" class="form-label">Buscar producto</label>
-                                            <input type="text" id="product-search" class="form-control" placeholder="Nombre, código, marca, color, formato, acabado o categoría...">
-                                        </div>
-                                    </div>
-
-                                    <div class="row g-2 align-items-end mb-3">
-                                        <div class="col-md-2">
-                                            <label for="filter-formato" class="form-label">Formato</label>
-                                            <select id="filter-formato" class="form-select">
-                                                <option value="">Todos</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label for="filter-acabado" class="form-label">Acabado</label>
-                                            <select id="filter-acabado" class="form-select">
-                                                <option value="">Todos</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label for="filter-color" class="form-label">Color</label>
-                                            <select id="filter-color" class="form-select">
-                                                <option value="">Todos</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label for="filter-brand" class="form-label">Marca</label>
-                                            <select id="filter-brand" class="form-select">
-                                                <option value="">Todas</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label for="filter-category" class="form-label">Categoría</label>
-                                            <select id="filter-category" class="form-select">
-                                                <option value="">Todas</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <div class="form-check pt-4">
-                                                <input class="form-check-input" type="checkbox" id="filter-stock" checked>
-                                                <label class="form-check-label" for="filter-stock">Solo con stock</label>
+                                <div class="card border product-panel-card">
+                                    <div class="card-body">
+                                        <div class="row g-2 align-items-end mb-3">
+                                            <div class="col-12">
+                                                <label for="product-search" class="form-label">Buscar producto</label>
+                                                <input type="text" id="product-search" class="form-control" placeholder="Nombre, código, marca, formato, acabado o categoría...">
                                             </div>
                                         </div>
-                                        <div class="col-12 text-end">
-                                            <small class="text-muted" id="product-result-count"></small>
+
+                                        <div class="row g-2 align-items-end mb-3">
+                                            <div class="col-md-3">
+                                                <label for="filter-formato" class="form-label">Formato</label>
+                                                <select id="filter-formato" class="form-select">
+                                                    <option value="">Todos</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="filter-acabado" class="form-label">Acabado</label>
+                                                <select id="filter-acabado" class="form-select">
+                                                    <option value="">Todos</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="filter-brand" class="form-label">Marca</label>
+                                                <select id="filter-brand" class="form-select">
+                                                    <option value="">Todas</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="filter-category" class="form-label">Categoría</label>
+                                                <select id="filter-category" class="form-select">
+                                                    <option value="">Todas</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-check pt-4">
+                                                    <input class="form-check-input" type="checkbox" id="filter-stock" checked>
+                                                    <label class="form-check-label" for="filter-stock">Solo con stock</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 text-end">
+                                                <small class="text-muted" id="product-result-count"></small>
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3" id="product-card-list"></div>
+
+                                        <div id="product-pagination" class="d-flex justify-content-between align-items-center mt-3 d-none">
+                                            <button type="button" id="products-prev-page" class="btn btn-sm btn-outline-secondary">Anterior</button>
+                                            <small class="text-muted" id="product-page-info">Pagina 1 de 1</small>
+                                            <button type="button" id="products-next-page" class="btn btn-sm btn-outline-secondary">Siguiente</button>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
 
-                                    <div class="row g-3" id="product-card-list"></div>
+                            <div class="col-12 col-xl-6">
+                                <h5 class="mb-3">Detalle de la venta</h5>
 
-                                    <div id="product-pagination" class="d-flex justify-content-between align-items-center mt-3 d-none">
-                                        <button type="button" id="products-prev-page" class="btn btn-sm btn-outline-secondary">Anterior</button>
-                                        <small class="text-muted" id="product-page-info">Pagina 1 de 1</small>
-                                        <button type="button" id="products-next-page" class="btn btn-sm btn-outline-secondary">Siguiente</button>
+                                <div class="card border sale-detail-panel">
+                                    <div class="card-body">
+                                        {% if formset.non_form_errors %}
+                                            <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
+                                        {% endif %}
+
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Producto</th>
+                                                        <th class="text-center" style="width:95px;">Ref (m²)</th>
+                                                        <th class="text-center" style="width:80px;">Cajas</th>
+                                                        <th class="text-center" style="width:95px;">Cantidad</th>
+                                                        <th class="text-center" style="width:100px;">Precio</th>
+                                                        <th class="text-center" style="width:100px;">Descuento</th>
+                                                        <th class="text-end" style="width:100px;">Subtotal</th>
+                                                        <th class="text-center" style="width:70px;">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="formset-tbody">
+                                                    {% for form_detail in formset %}
+                                                        <tr class="formset-row{% if form_detail.DELETE.value %} d-none{% endif %}">
+                                                            <td>
+                                                                <div class="product-display text-muted">Sin producto</div>
+                                                                <div class="d-none">{{ form_detail.product }}</div>
+                                                            </td>
+                                                            <td><input type="number" class="form-control form-control-sm ref-m2-input" step="0.01" min="0.01" placeholder="0.00"><div class="d-none">{{ form_detail.ref_m2 }}</div></td>
+                                                            <td class="text-center"><span class="boxes-display">-</span><div class="d-none">{{ form_detail.cajas }}</div></td>
+                                                            <td class="text-center"><span class="quantity-display">0.00</span><div class="d-none">{{ form_detail.quantity }}</div></td>
+                                                            <td>{{ form_detail.price }}</td>
+                                                            <td>{{ form_detail.discount }}</td>
+                                                            <td class="text-end"><span class="subtotal-display">0.00</span></td>
+                                                            <td class="text-center">
+                                                                {{ form_detail.DELETE }}
+                                                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
+                                                            </td>
+                                                            <td class="d-none">{{ form_detail.id }}{{ form_detail.ORDER }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="table-light fw-semibold">
+                                                        <td colspan="6" class="text-end">DESCUENTO:</td>
+                                                        <td class="text-end">Bs <span id="discount-sale">0.00</span></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr class="table-light fw-bold">
+                                                        <td colspan="6" class="text-end">TOTAL:</td>
+                                                        <td class="text-end">Bs <span id="total-sale">0.00</span></td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+
+                                        <div id="sale-detail-empty" class="small text-muted mt-2">Agrega productos desde las tarjetas para iniciar el detalle de la venta.</div>
+                                        <div id="duplicate-alert" class="alert alert-danger d-none mt-3 mb-2">No puedes repetir el mismo producto en una venta.</div>
+                                        <div id="stock-alert" class="alert alert-warning d-none mt-2 mb-0">Una o más cantidades superan el stock disponible.</div>
+                                        {% for form_detail in formset %}
+                                            {% if form_detail.errors %}
+                                                <div class="alert alert-danger small mt-2 mb-0">
+                                                    <strong>Fila {{ forloop.counter }}:</strong>
+                                                    {% for field, errors in form_detail.errors.items %}
+                                                        {{ errors|striptags }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if formset.non_form_errors %}
+                                            <div class="alert alert-danger small mt-2 mb-0">{{ formset.non_form_errors|striptags }}</div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-12 col-xl-5">
-                            <h5 class="mb-3">Detalle de la venta</h5>
+                        <div id="step1-error" class="alert alert-danger d-none mb-3"></div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="button" id="btn-step1-next" class="btn btn-dark">
+                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
 
-                            <div class="card border sale-detail-panel">
-                                <div class="card-body">
-                                    <div class="row g-2 mb-3">
-                                        <div class="col-12">
-                                            <label class="form-label" for="id_client">Cliente <span class="text-danger">*</span></label>
-                                            <div
-                                                id="client-search-box"
-                                                class="position-relative"
-                                                data-lookup-url="{% url 'clientes:lookup' %}"
-                                                data-quick-create-url="{% url 'clientes:quick_create' %}"
+                    <!-- ======== PASO 2: Cliente & Pago ======== -->
+                    <div id="step-panel-2" class="step-panel d-none">
+                        <div class="row g-4 mb-4">
+                            <div class="col-12 col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-header bg-light fw-semibold">
+                                        <i class="fas fa-user me-2"></i>Cliente
+                                    </div>
+                                    <div class="card-body">
+                                        <label class="form-label" for="id_client">Cliente <span class="text-danger">*</span></label>
+                                        <div
+                                            id="client-search-box"
+                                            class="position-relative"
+                                            data-lookup-url="{% url 'clientes:lookup' %}"
+                                            data-quick-create-url="{% url 'clientes:quick_create' %}"
+                                        >
+                                            <input
+                                                type="text"
+                                                id="client-search"
+                                                class="form-control"
+                                                placeholder="Busca por nombre, NIT/CI, telefono o correo..."
+                                                autocomplete="off"
                                             >
-                                                <input
-                                                    type="text"
-                                                    id="client-search"
-                                                    class="form-control"
-                                                    placeholder="Busca por nombre, NIT/CI, telefono o correo..."
-                                                    autocomplete="off"
-                                                >
-                                                <div id="client-search-results" class="list-group position-absolute w-100 mt-1 d-none" style="z-index: 1030;"></div>
+                                            <div id="client-search-results" class="list-group position-absolute w-100 mt-1 d-none" style="z-index: 1030;"></div>
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2">
+                                            <button type="button" id="btn-client-clear" class="btn btn-sm btn-outline-secondary">Limpiar</button>
+                                            <button type="button" id="btn-client-quick-create" class="btn btn-sm btn-outline-dark">Nuevo cliente rápido</button>
+                                        </div>
+                                        <div id="client-quick-create" class="border rounded p-2 mt-2 d-none bg-light-subtle">
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <label class="form-label mb-1" for="quick-client-name">Nombre *</label>
+                                                    <input type="text" id="quick-client-name" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label mb-1" for="quick-client-nit">NIT/CI *</label>
+                                                    <input type="text" id="quick-client-nit" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label mb-1" for="quick-client-phone">Teléfono</label>
+                                                    <input type="text" id="quick-client-phone" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label mb-1" for="quick-client-email">Correo</label>
+                                                    <input type="email" id="quick-client-email" class="form-control form-control-sm">
+                                                </div>
                                             </div>
                                             <div class="d-flex gap-2 mt-2">
-                                                <button type="button" id="btn-client-clear" class="btn btn-sm btn-outline-secondary">Limpiar</button>
-                                                <button type="button" id="btn-client-quick-create" class="btn btn-sm btn-outline-dark">Nuevo cliente rapido</button>
+                                                <button type="button" id="btn-client-quick-save" class="btn btn-sm btn-dark">Guardar cliente</button>
+                                                <button type="button" id="btn-client-quick-cancel" class="btn btn-sm btn-outline-secondary">Cancelar</button>
                                             </div>
-                                            <div id="client-quick-create" class="border rounded p-2 mt-2 d-none bg-light-subtle">
-                                                <div class="row g-2">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label mb-1" for="quick-client-name">Nombre *</label>
-                                                        <input type="text" id="quick-client-name" class="form-control form-control-sm">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label mb-1" for="quick-client-nit">NIT/CI *</label>
-                                                        <input type="text" id="quick-client-nit" class="form-control form-control-sm">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label mb-1" for="quick-client-phone">Telefono</label>
-                                                        <input type="text" id="quick-client-phone" class="form-control form-control-sm">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label mb-1" for="quick-client-email">Correo</label>
-                                                        <input type="email" id="quick-client-email" class="form-control form-control-sm">
-                                                    </div>
-                                                </div>
-                                                <div class="d-flex gap-2 mt-2">
-                                                    <button type="button" id="btn-client-quick-save" class="btn btn-sm btn-dark">Guardar cliente</button>
-                                                    <button type="button" id="btn-client-quick-cancel" class="btn btn-sm btn-outline-secondary">Cancelar</button>
-                                                </div>
-                                                <div id="client-quick-create-feedback" class="small mt-2"></div>
-                                            </div>
-                                            <div class="d-none">{{ form.client }}</div>
-                                            <div class="text-danger small mt-1">{{ form.client.errors|striptags }}</div>
+                                            <div id="client-quick-create-feedback" class="small mt-2"></div>
                                         </div>
-                                        <div class="col-6">
+                                        <div class="d-none">{{ form.client }}</div>
+                                        <div class="text-danger small mt-1">{{ form.client.errors|striptags }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="card border h-100">
+                                    <div class="card-header bg-light fw-semibold">
+                                        <i class="fas fa-credit-card me-2"></i>Pago
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
                                             <label class="form-label" for="id_payment_type">Tipo de pago <span class="text-danger">*</span></label>
                                             {{ form.payment_type }}
                                             <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
                                         </div>
-                                        <div class="col-6">
+                                        <div>
                                             <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
                                             {{ form.status }}
                                             <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    {% if formset.non_form_errors %}
-                                        <div class="alert alert-danger">{{ formset.non_form_errors|striptags }}</div>
-                                    {% endif %}
+                        <div id="step2-error" class="alert alert-danger d-none mb-3"></div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="btn-step2-prev" class="btn btn-outline-secondary">
+                                <i class="fas fa-chevron-left me-1"></i> Anterior
+                            </button>
+                            <button type="button" id="btn-step2-next" class="btn btn-dark">
+                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
 
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-bordered align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Producto</th>
-                                                    <th class="text-center" style="width:90px;">Stock</th>
-                                                    <th class="text-center" style="width:95px;">Cant.</th>
-                                                    <th class="text-center" style="width:110px;">Precio</th>
-                                                    <th class="text-end" style="width:110px;">Subtotal</th>
-                                                    <th class="text-center" style="width:70px;">Acción</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="formset-tbody">
-                                                {% for form_detail in formset %}
-                                                    <tr class="formset-row{% if form_detail.DELETE.value %} d-none{% endif %}">
-                                                        <td>
-                                                            <div class="product-display text-muted">Sin producto</div>
-                                                            <div class="d-none">{{ form_detail.product }}</div>
-                                                        </td>
-                                                        <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
-                                                        <td>{{ form_detail.quantity }}</td>
-                                                        <td>{{ form_detail.price }}</td>
-                                                        <td class="text-end"><span class="subtotal-display">0.00</span></td>
-                                                        <td class="text-center">
-                                                            {{ form_detail.DELETE }}
-                                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash"></i></button>
-                                                        </td>
-                                                        <td class="d-none">{{ form_detail.id }}{{ form_detail.ORDER }}</td>
-                                                    </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                            <tfoot>
-                                                <tr class="table-light fw-bold">
-                                                    <td colspan="4" class="text-end">TOTAL:</td>
-                                                    <td class="text-end">Bs <span id="total-sale">0.00</span></td>
-                                                    <td></td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
+                    <!-- ======== PASO 3: Confirmación ======== -->
+                    <div id="step-panel-3" class="step-panel d-none">
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <div class="card border">
+                                    <div class="card-header bg-light fw-semibold">
+                                        <i class="fas fa-clipboard-list me-2"></i>Resumen de la venta
                                     </div>
+                                    <div class="card-body">
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-4">
+                                                <div class="text-muted small">Cliente</div>
+                                                <div class="fw-semibold" id="confirm-client">—</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="text-muted small">Tipo de pago</div>
+                                                <div class="fw-semibold" id="confirm-payment">—</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="text-muted small">Estado</div>
+                                                <div class="fw-semibold" id="confirm-status">—</div>
+                                            </div>
+                                        </div>
 
-                                    <div id="sale-detail-empty" class="small text-muted mt-2">Agrega productos desde las tarjetas para iniciar el detalle de la venta.</div>
-
-                                    <div id="duplicate-alert" class="alert alert-danger d-none mt-3 mb-2">No puedes repetir el mismo producto en una venta.</div>
-                                    <div id="stock-alert" class="alert alert-warning d-none mt-2 mb-0">Una o más cantidades superan el stock disponible.</div>
-
-                                    <div class="d-flex gap-2 mt-3">
-                                        <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                                        <button id="btn-submit-sale" type="submit" class="btn btn-dark">Guardar</button>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Producto</th>
+                                                        <th class="text-center">Cantidad</th>
+                                                        <th class="text-end">Precio</th>
+                                                        <th class="text-end">Descuento</th>
+                                                        <th class="text-end">Subtotal</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="confirm-items"></tbody>
+                                                <tfoot>
+                                                    <tr class="table-light fw-semibold">
+                                                        <td colspan="5" class="text-end">DESCUENTO:</td>
+                                                        <td class="text-end">Bs <span id="confirm-discount">0.00</span></td>
+                                                    </tr>
+                                                    <tr class="table-light fw-bold">
+                                                        <td colspan="5" class="text-end">TOTAL:</td>
+                                                        <td class="text-end fs-5">Bs <span id="confirm-total">0.00</span></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div id="step3-error" class="alert alert-danger d-none mb-3"></div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="btn-step3-prev" class="btn btn-outline-secondary">
+                                <i class="fas fa-chevron-left me-1"></i> Anterior
+                            </button>
+                            <button id="btn-submit-sale" type="submit" class="btn btn-success px-4">
+                                <i class="fas fa-check me-1"></i> Confirmar venta
+                            </button>
                         </div>
                     </div>
 
@@ -210,9 +358,11 @@
                                 <div class="product-display text-muted">Sin producto</div>
                                 <div class="d-none">{{ formset.empty_form.product }}</div>
                             </td>
-                            <td class="text-center"><span class="badge text-bg-light border stock-badge">-</span></td>
-                            <td>{{ formset.empty_form.quantity }}</td>
+                            <td><input type="number" class="form-control form-control-sm ref-m2-input" step="0.01" min="0.01" placeholder="0.00"><div class="d-none">{{ formset.empty_form.ref_m2 }}</div></td>
+                            <td class="text-center align-middle"><span class="boxes-display">-</span><div class="d-none">{{ formset.empty_form.cajas }}</div></td>
+                            <td class="text-center align-middle"><span class="quantity-display">0.00</span><div class="d-none">{{ formset.empty_form.quantity }}</div></td>
                             <td>{{ formset.empty_form.price }}</td>
+                            <td>{{ formset.empty_form.discount }}</td>
                             <td class="text-end align-middle"><span class="subtotal-display">0.00</span></td>
                             <td class="text-center">
                                 {{ formset.empty_form.DELETE }}
@@ -233,6 +383,54 @@
 {{ products_data|json_script:'products-data' }}
 
 <style>
+    /* ---- Stepper pills ---- */
+    .step-pill {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .45rem 1.1rem;
+        border-radius: 50rem;
+        border: 2px solid #dee2e6;
+        background: #fff;
+        color: #6c757d;
+        font-weight: 500;
+        transition: all .2s ease;
+        cursor: default;
+    }
+    .step-pill:not(:disabled) {
+        cursor: pointer;
+    }
+    .step-pill.step-pill-active {
+        border-color: #212529;
+        background: #212529;
+        color: #fff;
+    }
+    .step-pill.step-pill-done {
+        border-color: #198754;
+        background: #fff;
+        color: #198754;
+    }
+    .step-pill.step-pill-done .step-number {
+        background: #198754 !important;
+    }
+    .step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: #6c757d;
+        color: #fff;
+        font-size: .75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .step-pill-active .step-number {
+        background: rgba(255,255,255,.25);
+    }
+
+    /* ---- Product cards ---- */
     .product-card {
         border: 1px solid #dee2e6;
         border-radius: .5rem;
@@ -241,12 +439,10 @@
         transition: transform .15s ease, box-shadow .15s ease;
         background: #fff;
     }
-
     .product-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 .35rem .9rem rgba(0, 0, 0, .12);
+        box-shadow: 0 .35rem .9rem rgba(0,0,0,.12);
     }
-
     .product-card-image {
         width: 100%;
         height: 130px;
@@ -254,7 +450,6 @@
         padding: .5rem;
         background: #f8f9fa;
     }
-
     .product-card-empty {
         width: 100%;
         height: 130px;
@@ -264,90 +459,218 @@
         color: #adb5bd;
         background: #f8f9fa;
     }
-
-    .product-card-body {
-        padding: .8rem;
-    }
-
+    .product-card-body { padding: .8rem; }
     .product-card-name {
         font-weight: 600;
         margin-bottom: .35rem;
         min-height: 2.6em;
     }
-
     .product-card-meta {
         font-size: .85rem;
         color: #6c757d;
         margin-bottom: .25rem;
     }
-
     .product-display {
         font-weight: 500;
         min-height: 1.5rem;
     }
-
-    .row-hidden-empty {
-        display: none;
-    }
+    .row-hidden-empty { display: none; }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+    /* ================================================================
+       DATA & MAPS
+    ================================================================ */
     const productsData = JSON.parse(document.getElementById('products-data').textContent || '[]');
     const productsMap = new Map(productsData.map(p => [String(p.id), p]));
 
-    const tbody = document.querySelector('.formset-tbody');
-    const totalFormsInput = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
-    const emptyTemplate = document.getElementById('empty-form-template');
-    const submitButton = document.getElementById('btn-submit-sale');
-    const duplicateAlert = document.getElementById('duplicate-alert');
-    const stockAlert = document.getElementById('stock-alert');
-    const saleDetailEmpty = document.getElementById('sale-detail-empty');
-    const productCardList = document.getElementById('product-card-list');
+    /* ================================================================
+       DOM REFS
+    ================================================================ */
+    const tbody              = document.querySelector('.formset-tbody');
+    const totalFormsInput    = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
+    const emptyTemplate      = document.getElementById('empty-form-template');
+    const submitButton       = document.getElementById('btn-submit-sale');
+    const duplicateAlert     = document.getElementById('duplicate-alert');
+    const stockAlert         = document.getElementById('stock-alert');
+    const saleDetailEmpty    = document.getElementById('sale-detail-empty');
+    const productCardList    = document.getElementById('product-card-list');
     const productSearchInput = document.getElementById('product-search');
-    const filterFormato = document.getElementById('filter-formato');
-    const filterAcabado = document.getElementById('filter-acabado');
-    const filterColor = document.getElementById('filter-color');
-    const filterBrand = document.getElementById('filter-brand');
-    const filterCategory = document.getElementById('filter-category');
-    const filterStock = document.getElementById('filter-stock');
-    const resultCount = document.getElementById('product-result-count');
-    const productPagination = document.getElementById('product-pagination');
-    const productsPrevPage = document.getElementById('products-prev-page');
-    const productsNextPage = document.getElementById('products-next-page');
-    const productPageInfo = document.getElementById('product-page-info');
-    const clientSelect = document.getElementById('id_client');
-    const clientSearchBox = document.getElementById('client-search-box');
-    const clientSearchInput = document.getElementById('client-search');
+    const filterFormato      = document.getElementById('filter-formato');
+    const filterAcabado      = document.getElementById('filter-acabado');
+    const filterBrand        = document.getElementById('filter-brand');
+    const filterCategory     = document.getElementById('filter-category');
+    const filterStock        = document.getElementById('filter-stock');
+    const resultCount        = document.getElementById('product-result-count');
+    const productPagination  = document.getElementById('product-pagination');
+    const productsPrevPage   = document.getElementById('products-prev-page');
+    const productsNextPage   = document.getElementById('products-next-page');
+    const productPageInfo    = document.getElementById('product-page-info');
+    const clientSelect       = document.getElementById('id_client');
+    const clientSearchBox    = document.getElementById('client-search-box');
+    const clientSearchInput  = document.getElementById('client-search');
     const clientSearchResults = document.getElementById('client-search-results');
-    const clientClearButton = document.getElementById('btn-client-clear');
+    const clientClearButton      = document.getElementById('btn-client-clear');
     const clientQuickCreateToggle = document.getElementById('btn-client-quick-create');
-    const clientQuickCreateBox = document.getElementById('client-quick-create');
-    const clientQuickSaveButton = document.getElementById('btn-client-quick-save');
+    const clientQuickCreateBox   = document.getElementById('client-quick-create');
+    const clientQuickSaveButton  = document.getElementById('btn-client-quick-save');
     const clientQuickCancelButton = document.getElementById('btn-client-quick-cancel');
-    const clientQuickFeedback = document.getElementById('client-quick-create-feedback');
-    const quickClientName = document.getElementById('quick-client-name');
-    const quickClientNit = document.getElementById('quick-client-nit');
+    const clientQuickFeedback    = document.getElementById('client-quick-create-feedback');
+    const quickClientName  = document.getElementById('quick-client-name');
+    const quickClientNit   = document.getElementById('quick-client-nit');
     const quickClientPhone = document.getElementById('quick-client-phone');
     const quickClientEmail = document.getElementById('quick-client-email');
 
-    const clientLookupUrl = clientSearchBox ? clientSearchBox.dataset.lookupUrl : '';
+    const clientLookupUrl      = clientSearchBox ? clientSearchBox.dataset.lookupUrl : '';
     const clientQuickCreateUrl = clientSearchBox ? clientSearchBox.dataset.quickCreateUrl : '';
 
     let clientSearchTimer = null;
-
     const productsPerPage = 8;
     let currentProductsPage = 1;
 
+    /* ================================================================
+       STEPPER
+    ================================================================ */
+    let currentStep = 1;
+    const totalSteps = 3;
+    const serverErrorFlags = document.getElementById('server-error-flags');
+    const step3Error = document.getElementById('step3-error');
+    const step1Error = document.getElementById('step1-error');
+    const statusSelect = document.getElementById('id_status');
+
+    function isConfirmedStatus() {
+        return statusSelect && statusSelect.value === 'confirmada';
+    }
+
+    function goToStep(step) {
+        for (let i = 1; i <= totalSteps; i++) {
+            const panel = document.getElementById(`step-panel-${i}`);
+            if (panel) panel.classList.toggle('d-none', i !== step);
+            const pill = document.querySelector(`.step-pill[data-step="${i}"]`);
+            if (pill) {
+                pill.classList.remove('step-pill-active', 'step-pill-done');
+                pill.disabled = (i > step);
+                if (i < step) pill.classList.add('step-pill-done');
+                if (i === step) pill.classList.add('step-pill-active');
+            }
+        }
+        currentStep = step;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Pill click navigation (only for already-visited steps)
+    document.getElementById('sale-stepper').addEventListener('click', function (e) {
+        const pill = e.target.closest('.step-pill');
+        if (!pill || pill.disabled) return;
+        const step = parseInt(pill.dataset.step, 10);
+        if (step < currentStep) goToStep(step);
+    });
+
+    /* Step 1 → 2 */
+    document.getElementById('btn-step1-next').addEventListener('click', function () {
+        const errorBox = document.getElementById('step1-error');
+        refreshValidation();
+        if (visibleRows().length === 0) {
+            errorBox.textContent = 'Agrega al menos un producto antes de continuar.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        if (!validateDuplicates()) {
+            errorBox.textContent = 'Hay productos repetidos en el detalle.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        if (!validateStock()) {
+            errorBox.textContent = 'Una o más cantidades superan el stock disponible.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        errorBox.classList.add('d-none');
+        goToStep(2);
+    });
+
+    /* Step 2 → 1 */
+    document.getElementById('btn-step2-prev').addEventListener('click', function () {
+        goToStep(1);
+    });
+
+    /* Step 2 → 3 */
+    document.getElementById('btn-step2-next').addEventListener('click', function () {
+        const errorBox = document.getElementById('step2-error');
+        if (!clientSelect || !clientSelect.value) {
+            errorBox.textContent = 'Selecciona un cliente antes de continuar.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        errorBox.classList.add('d-none');
+        buildConfirmation();
+        goToStep(3);
+    });
+
+    /* Step 3 → 2 */
+    document.getElementById('btn-step3-prev').addEventListener('click', function () {
+        goToStep(2);
+    });
+
+    function buildConfirmation() {
+        // Client
+        const selectedOption = clientSelect ? clientSelect.options[clientSelect.selectedIndex] : null;
+        document.getElementById('confirm-client').textContent =
+            selectedOption && selectedOption.value ? selectedOption.textContent : '—';
+
+        // Payment type
+        const paymentSelect = document.getElementById('id_payment_type');
+        document.getElementById('confirm-payment').textContent =
+            paymentSelect ? paymentSelect.options[paymentSelect.selectedIndex].textContent : '—';
+
+        // Status
+        const statusSelect = document.getElementById('id_status');
+        document.getElementById('confirm-status').textContent =
+            statusSelect ? statusSelect.options[statusSelect.selectedIndex].textContent : '—';
+
+        // Items
+        let rows = [];
+        let totalDiscount = 0;
+        let total = 0;
+        let idx = 1;
+        visibleRows().forEach(row => {
+            const productSelect = row.querySelector('select[name*="-product"]');
+            const qtyInput      = row.querySelector('input[name*="-quantity"]');
+            const priceInput    = row.querySelector('input[name*="-price"]');
+            const discountInput = row.querySelector('input[name*="-discount"]');
+            if (!productSelect || !productSelect.value) return;
+            const meta     = productsMap.get(productSelect.value);
+            const name     = meta ? meta.name : productSelect.options[productSelect.selectedIndex]?.textContent || '—';
+            const qty      = parseFloat(qtyInput?.value || '0');
+            const price    = parseFloat(priceInput?.value || '0');
+            const discount = parseFloat(discountInput?.value || '0');
+            const subtotal = Math.max(0, qty * price - discount);
+            totalDiscount += discount;
+            total += subtotal;
+            rows.push(`
+                <tr>
+                    <td class="text-muted small">${idx++}</td>
+                    <td>${name}</td>
+                    <td class="text-center">${qty.toFixed(2)}</td>
+                    <td class="text-end">Bs ${price.toFixed(2)}</td>
+                    <td class="text-end">Bs ${discount.toFixed(2)}</td>
+                    <td class="text-end fw-semibold">Bs ${subtotal.toFixed(2)}</td>
+                </tr>
+            `);
+        });
+        document.getElementById('confirm-items').innerHTML = rows.join('');
+        document.getElementById('confirm-discount').textContent = totalDiscount.toFixed(2);
+        document.getElementById('confirm-total').textContent = total.toFixed(2);
+    }
+
+    /* ================================================================
+       PRODUCT FILTERS & CARDS
+    ================================================================ */
     function uniqueSortedValues(key) {
-        const values = Array.from(
-            new Set(
-                productsData
-                    .map(item => (item[key] || '').trim())
-                    .filter(Boolean)
-            )
-        );
-        return values.sort((a, b) => a.localeCompare(b));
+        return Array.from(
+            new Set(productsData.map(item => (item[key] || '').trim()).filter(Boolean))
+        ).sort((a, b) => a.localeCompare(b));
     }
 
     function fillFilterOptions(selectElement, values) {
@@ -359,164 +682,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-            return parts.pop().split(';').shift();
-        }
-        return '';
-    }
-
-    function hideClientResults() {
-        if (!clientSearchResults) {
-            return;
-        }
-        clientSearchResults.innerHTML = '';
-        clientSearchResults.classList.add('d-none');
-    }
-
-    function ensureClientOption(client) {
-        if (!clientSelect || !client || !client.id) {
-            return;
-        }
-        let option = clientSelect.querySelector(`option[value="${client.id}"]`);
-        if (!option) {
-            option = document.createElement('option');
-            option.value = String(client.id);
-            option.textContent = client.label || `${client.name} (${client.nit_ci})`;
-            clientSelect.appendChild(option);
-        } else if (client.label) {
-            option.textContent = client.label;
-        }
-        clientSelect.value = String(client.id);
-        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    function setSelectedClientFromSelect() {
-        if (!clientSelect || !clientSearchInput) {
-            return;
-        }
-        const selected = clientSelect.options[clientSelect.selectedIndex];
-        clientSearchInput.value = selected && selected.value ? selected.textContent : '';
-    }
-
-    function renderClientResults(items) {
-        if (!clientSearchResults) {
-            return;
-        }
-
-        if (!items.length) {
-            clientSearchResults.innerHTML = '<div class="list-group-item small text-muted">No se encontraron clientes.</div>';
-            clientSearchResults.classList.remove('d-none');
-            return;
-        }
-
-        clientSearchResults.innerHTML = items.map(item => {
-            return `
-                <button
-                    type="button"
-                    class="list-group-item list-group-item-action client-result-item"
-                    data-id="${item.id}"
-                    data-name="${item.name}"
-                    data-nit="${item.nit_ci}"
-                    data-label="${item.label}"
-                >
-                    <div class="fw-semibold">${item.name}</div>
-                    <div class="small text-muted">NIT/CI: ${item.nit_ci}${item.phone ? ` · Tel: ${item.phone}` : ''}</div>
-                </button>
-            `;
-        }).join('');
-        clientSearchResults.classList.remove('d-none');
-    }
-
-    async function searchClients(query) {
-        if (!clientLookupUrl || !query || query.length < 2) {
-            hideClientResults();
-            return;
-        }
-
-        try {
-            const response = await fetch(`${clientLookupUrl}?q=${encodeURIComponent(query)}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) {
-                hideClientResults();
-                return;
-            }
-            const data = await response.json();
-            renderClientResults(data.results || []);
-        } catch (_err) {
-            hideClientResults();
-        }
-    }
-
-    function setClientQuickFeedback(message, type) {
-        if (!clientQuickFeedback) {
-            return;
-        }
-        clientQuickFeedback.className = `small mt-2 text-${type}`;
-        clientQuickFeedback.textContent = message;
-    }
-
-    async function quickCreateClient() {
-        if (!clientQuickCreateUrl) {
-            return;
-        }
-
-        const name = (quickClientName.value || '').trim();
-        const nitCi = (quickClientNit.value || '').trim();
-        const phone = (quickClientPhone.value || '').trim();
-        const email = (quickClientEmail.value || '').trim();
-
-        if (!name || !nitCi) {
-            setClientQuickFeedback('Nombre y NIT/CI son obligatorios.', 'danger');
-            return;
-        }
-
-        const body = new URLSearchParams({
-            name,
-            nit_ci: nitCi,
-            phone,
-            email,
-        });
-
-        try {
-            const response = await fetch(clientQuickCreateUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body,
-            });
-            const data = await response.json();
-            if (!response.ok || !data.ok) {
-                setClientQuickFeedback(data.message || 'No se pudo crear el cliente.', 'danger');
-                return;
-            }
-
-            ensureClientOption(data.client);
-            setSelectedClientFromSelect();
-            clientQuickCreateBox.classList.add('d-none');
-            setClientQuickFeedback('', 'muted');
-            quickClientName.value = '';
-            quickClientNit.value = '';
-            quickClientPhone.value = '';
-            quickClientEmail.value = '';
-            hideClientResults();
-        } catch (_err) {
-            setClientQuickFeedback('Error de red al crear el cliente.', 'danger');
-        }
-    }
-
     function activeFilters() {
         return {
             search: (productSearchInput.value || '').trim().toLowerCase(),
             formato: filterFormato.value,
             acabado: filterAcabado.value,
-            color: filterColor.value,
             brand: filterBrand.value,
             category: filterCategory.value,
             onlyStock: filterStock.checked,
@@ -524,40 +694,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function filterProducts() {
-        const filters = activeFilters();
+        const f = activeFilters();
         return productsData.filter(product => {
-            if (filters.formato && product.formato !== filters.formato) {
-                return false;
-            }
-            if (filters.acabado && product.acabado !== filters.acabado) {
-                return false;
-            }
-            if (filters.color && product.color !== filters.color) {
-                return false;
-            }
-            if (filters.brand && product.brand !== filters.brand) {
-                return false;
-            }
-            if (filters.category && product.category !== filters.category) {
-                return false;
-            }
-            if (filters.onlyStock && product.stock <= 0) {
-                return false;
-            }
-            if (filters.search) {
+            if (f.formato && product.formato !== f.formato) return false;
+            if (f.acabado && product.acabado !== f.acabado) return false;
+            if (f.brand && product.brand !== f.brand) return false;
+            if (f.category && product.category !== f.category) return false;
+            if (f.onlyStock && product.stock <= 0) return false;
+            if (f.search) {
                 const text = [
-                    product.code,
-                    product.name,
-                    product.brand,
-                    product.category,
-                    product.color,
-                    product.formato,
-                    product.acabado,
-                    product.indicaciones_uso,
+                    product.code, product.name, product.brand, product.category,
+                    product.color, product.formato, product.acabado, product.indicaciones_uso,
                 ].join(' ').toLowerCase();
-                if (!text.includes(filters.search)) {
-                    return false;
-                }
+                if (!text.includes(f.search)) return false;
             }
             return true;
         });
@@ -575,8 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalPages = Math.max(1, Math.ceil(filtered.length / productsPerPage));
         currentProductsPage = Math.min(currentProductsPage, totalPages);
         const startIndex = (currentProductsPage - 1) * productsPerPage;
-        const endIndex = startIndex + productsPerPage;
-        const pagedProducts = filtered.slice(startIndex, endIndex);
+        const pagedProducts = filtered.slice(startIndex, startIndex + productsPerPage);
 
         resultCount.textContent = `${filtered.length} producto(s) encontrado(s)`;
 
@@ -589,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
         productCardList.innerHTML = pagedProducts.map(product => {
             const outOfStock = product.stock <= 0;
             return `
-                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                <div class="col-12 col-md-6">
                     <div class="product-card">
                         ${cardImage(product)}
                         <div class="product-card-body">
@@ -617,6 +765,9 @@ document.addEventListener('DOMContentLoaded', function() {
         productPageInfo.textContent = `Pagina ${currentProductsPage} de ${totalPages}`;
     }
 
+    /* ================================================================
+       FORMSET HELPERS
+    ================================================================ */
     function visibleRows() {
         return Array.from(document.querySelectorAll('.formset-row')).filter(
             r => !r.classList.contains('d-none') && !r.classList.contains('row-hidden-empty')
@@ -624,58 +775,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function availableRows() {
-        return Array.from(document.querySelectorAll('.formset-row')).filter(r => !r.classList.contains('d-none'));
+        return Array.from(document.querySelectorAll('.formset-row')).filter(
+            r => !r.classList.contains('d-none')
+        );
     }
 
     function updateRowFromProduct(row) {
-        const productSelect = row.querySelector('select[name*="-product"]');
-        const priceInput = row.querySelector('input[name*="-price"]');
-        const stockBadge = row.querySelector('.stock-badge');
+        const productSelect  = row.querySelector('select[name*="-product"]');
+        const quantityInput  = row.querySelector('input[name*="-quantity"]');
+        const quantityDisplay = row.querySelector('.quantity-display');
+        const refInput       = row.querySelector('.ref-m2-input');
+        const priceInput     = row.querySelector('input[name*="-price"]');
         const productDisplay = row.querySelector('.product-display');
-        if (!productSelect || !stockBadge) {
-            return;
-        }
+        if (!productSelect) return;
 
         const meta = productsMap.get(productSelect.value);
         if (!meta) {
-            stockBadge.textContent = '-';
-            if (productDisplay) {
-                productDisplay.textContent = 'Sin producto';
-                productDisplay.classList.add('text-muted');
-            }
+            if (productDisplay) { productDisplay.textContent = 'Sin producto'; productDisplay.classList.add('text-muted'); }
+            if (quantityInput) quantityInput.value = '';
+            if (quantityDisplay) quantityDisplay.textContent = '0.00';
+            if (refInput) refInput.value = '';
             row.classList.add('row-hidden-empty');
             return;
         }
 
         row.classList.remove('row-hidden-empty');
-        stockBadge.textContent = meta.stock;
-        if (productDisplay) {
-            productDisplay.textContent = meta.name;
-            productDisplay.classList.remove('text-muted');
-        }
+        if (productDisplay) { productDisplay.textContent = meta.name; productDisplay.classList.remove('text-muted'); }
         if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
             priceInput.value = parseFloat(meta.price).toFixed(2);
+        }
+        if (refInput && !refInput.value) {
+            const currentQty = quantityInput ? parseFloat(quantityInput.value || '0') : 0;
+            refInput.value = (currentQty > 0 ? currentQty : (meta.m2_por_caja || 1)).toFixed(2);
         }
     }
 
     function validateDuplicates() {
         const seen = new Set();
         let hasDup = false;
-
         visibleRows().forEach(row => row.classList.remove('table-danger'));
-
         visibleRows().forEach(row => {
             const productSelect = row.querySelector('select[name*="-product"]');
-            if (!productSelect || !productSelect.value) {
-                return;
-            }
-            if (seen.has(productSelect.value)) {
-                hasDup = true;
-                row.classList.add('table-danger');
-            }
+            if (!productSelect || !productSelect.value) return;
+            if (seen.has(productSelect.value)) { hasDup = true; row.classList.add('table-danger'); }
             seen.add(productSelect.value);
         });
-
         duplicateAlert.classList.toggle('d-none', !hasDup);
         return !hasDup;
     }
@@ -686,43 +830,69 @@ document.addEventListener('DOMContentLoaded', function() {
             row.classList.remove('table-warning');
             const productSelect = row.querySelector('select[name*="-product"]');
             const quantityInput = row.querySelector('input[name*="-quantity"]');
-            if (!productSelect || !quantityInput || !productSelect.value) {
-                return;
-            }
+            if (!productSelect || !quantityInput || !productSelect.value) return;
             const meta = productsMap.get(productSelect.value);
             const qty = parseFloat(quantityInput.value || '0');
-            if (meta && qty > meta.stock) {
-                valid = false;
-                row.classList.add('table-warning');
-            }
+            if (meta && qty > meta.stock) { valid = false; row.classList.add('table-warning'); }
         });
-
         stockAlert.classList.toggle('d-none', valid);
         return valid;
     }
 
     function updateTotals() {
-        let total = 0;
+        let total = 0, totalDiscount = 0;
         visibleRows().forEach(row => {
-            const qty = parseFloat((row.querySelector('input[name*="-quantity"]') || {}).value) || 0;
-            const price = parseFloat((row.querySelector('input[name*="-price"]') || {}).value) || 0;
-            const subtotal = qty * price;
-            const subtotalDisplay = row.querySelector('.subtotal-display');
-            if (subtotalDisplay) {
-                subtotalDisplay.textContent = subtotal.toFixed(2);
+            const productSelect  = row.querySelector('select[name*="-product"]');
+            const quantityInput  = row.querySelector('input[name*="-quantity"]');
+            const quantityDisplay = row.querySelector('.quantity-display');
+            const refInput       = row.querySelector('.ref-m2-input');
+            const refM2          = parseFloat((refInput || {}).value) || 0;
+            const price          = parseFloat((row.querySelector('input[name*="-price"]') || {}).value) || 0;
+            const discountInput  = row.querySelector('input[name*="-discount"]');
+            const discount       = parseFloat((discountInput || {}).value) || 0;
+            const boxesDisplay   = row.querySelector('.boxes-display');
+            const meta           = productSelect ? productsMap.get(productSelect.value) : null;
+            const m2PorCaja      = meta && meta.m2_por_caja ? parseFloat(meta.m2_por_caja) : 0;
+
+            let boxes = 0, qty = 0;
+            if (m2PorCaja > 0 && refM2 > 0) {
+                boxes = Math.ceil(refM2 / m2PorCaja);
+                qty = boxes * m2PorCaja;
+            } else if (m2PorCaja === 0 && refM2 > 0) {
+                // Product without m2_por_caja: use ref input directly as quantity
+                qty = refM2;
             }
+            if (boxesDisplay) boxesDisplay.textContent = boxes > 0 ? boxes : '-';
+            if (quantityInput) quantityInput.value = qty > 0 ? qty.toFixed(2) : '0.00';
+            if (quantityDisplay) quantityDisplay.textContent = qty > 0 ? qty.toFixed(2) : '0.00';
+
+            // Persist ref_m2 and cajas to hidden form fields
+            const refM2Input = row.querySelector('input[name*="-ref_m2"]');
+            const cajasInput = row.querySelector('input[name*="-cajas"]');
+            if (refM2Input) refM2Input.value = refM2 > 0 ? refM2.toFixed(2) : '';
+            if (cajasInput) cajasInput.value = boxes > 0 ? boxes : '';
+
+            const gross = qty * price;
+            const appliedDiscount = Math.min(discount, gross);
+            if (discountInput && appliedDiscount !== discount) discountInput.value = appliedDiscount.toFixed(2);
+            const subtotal = Math.max(0, gross - appliedDiscount);
+            const subtotalDisplay = row.querySelector('.subtotal-display');
+            if (subtotalDisplay) subtotalDisplay.textContent = subtotal.toFixed(2);
             total += subtotal;
+            totalDiscount += appliedDiscount;
         });
+        document.getElementById('discount-sale').textContent = totalDiscount.toFixed(2);
         document.getElementById('total-sale').textContent = total.toFixed(2);
     }
 
     function refreshValidation() {
-        const okDup = validateDuplicates();
+        const okDup   = validateDuplicates();
         const okStock = validateStock();
-        submitButton.disabled = !(okDup && okStock);
-        if (saleDetailEmpty) {
-            saleDetailEmpty.classList.toggle('d-none', visibleRows().length > 0);
+        const canSubmit = okDup && (!isConfirmedStatus() || okStock);
+        if (submitButton) {
+            submitButton.disabled = !canSubmit;
         }
+        if (saleDetailEmpty) saleDetailEmpty.classList.toggle('d-none', visibleRows().length > 0);
     }
 
     function addRow() {
@@ -741,17 +911,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setRowProduct(row, productId) {
         const productSelect = row.querySelector('select[name*="-product"]');
-        const quantityInput = row.querySelector('input[name*="-quantity"]');
-        if (!productSelect) {
-            return;
-        }
-
+        const refInput = row.querySelector('.ref-m2-input');
+        if (!productSelect) return;
         productSelect.value = String(productId);
         row.classList.remove('row-hidden-empty');
-        if (quantityInput && (!quantityInput.value || parseFloat(quantityInput.value) <= 0)) {
-            quantityInput.value = '1.00';
+        const meta = productsMap.get(String(productId));
+        if (refInput && (!refInput.value || parseFloat(refInput.value) <= 0)) {
+            refInput.value = meta && meta.m2_por_caja ? parseFloat(meta.m2_por_caja).toFixed(2) : '1.00';
         }
-
         updateRowFromProduct(row);
         updateTotals();
         refreshValidation();
@@ -759,52 +926,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function addProductToSale(productId) {
         const productKey = String(productId);
-
         const existingRow = visibleRows().find(row => {
-            const productSelect = row.querySelector('select[name*="-product"]');
-            return productSelect && productSelect.value === productKey;
+            const ps = row.querySelector('select[name*="-product"]');
+            return ps && ps.value === productKey;
         });
-
         if (existingRow) {
-            const quantityInput = existingRow.querySelector('input[name*="-quantity"]');
-            const currentQty = parseFloat(quantityInput.value || '0');
-            quantityInput.value = (currentQty > 0 ? currentQty + 1 : 1).toFixed(2);
+            const refInput = existingRow.querySelector('.ref-m2-input');
+            const meta = productsMap.get(productKey);
+            const currentRef = parseFloat(refInput.value || '0');
+            const increment = meta && meta.m2_por_caja ? parseFloat(meta.m2_por_caja) : 1;
+            refInput.value = (currentRef + increment).toFixed(2);
             updateTotals();
             refreshValidation();
             return;
         }
-
         const emptyRow = availableRows().find(row => {
-            const productSelect = row.querySelector('select[name*="-product"]');
-            return productSelect && !productSelect.value;
+            const ps = row.querySelector('select[name*="-product"]');
+            return ps && !ps.value;
         });
-
-        if (emptyRow) {
-            setRowProduct(emptyRow, productKey);
-            return;
-        }
-
+        if (emptyRow) { setRowProduct(emptyRow, productKey); return; }
         addRow();
         const rows = visibleRows();
         const newRow = rows[rows.length - 1];
-        if (newRow) {
-            setRowProduct(newRow, productKey);
-        }
+        if (newRow) setRowProduct(newRow, productKey);
     }
 
     function removeRow(button) {
         const row = button.closest('.formset-row');
-        if (!row) {
-            return;
-        }
+        if (!row) return;
         const deleteInput = row.querySelector('input[name*="-DELETE"]');
-        if (deleteInput) {
-            deleteInput.checked = true;
-        }
+        if (deleteInput) deleteInput.checked = true;
         row.classList.add('d-none');
-        if (visibleRows().length === 0) {
-            addRow();
-        }
+        if (visibleRows().length === 0) addRow();
         updateTotals();
         refreshValidation();
     }
@@ -813,148 +966,282 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('input[name*="-DELETE"]').forEach(i => i.classList.add('d-none'));
     }
 
-    document.addEventListener('change', function(e) {
+    /* ================================================================
+       DELEGATE EVENTS (products / formset)
+    ================================================================ */
+    document.addEventListener('change', function (e) {
         if (e.target.matches('select[name*="-product"]')) {
             updateRowFromProduct(e.target.closest('.formset-row'));
+            updateTotals();
             refreshValidation();
         }
-        if (e.target.matches('input[name*="-quantity"], input[name*="-price"]')) {
+        if (e.target.matches('.ref-m2-input, input[name*="-price"], input[name*="-discount"]')) {
             updateTotals();
             refreshValidation();
         }
     });
 
-    document.addEventListener('input', function(e) {
-        if (e.target.matches('input[name*="-quantity"], input[name*="-price"]')) {
+    document.addEventListener('input', function (e) {
+        if (e.target.matches('.ref-m2-input, input[name*="-price"], input[name*="-discount"]')) {
             updateTotals();
             refreshValidation();
         }
     });
 
-    document.addEventListener('click', function(e) {
-        const removeButton = e.target.closest('.btn-remove-row');
-        if (removeButton) {
-            removeRow(removeButton);
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.btn-remove-row')) {
+            removeRow(e.target.closest('.btn-remove-row'));
         }
-
-        const addProductButton = e.target.closest('.btn-add-product');
-        if (addProductButton) {
-            addProductToSale(addProductButton.dataset.productId);
+        if (e.target.closest('.btn-add-product')) {
+            addProductToSale(e.target.closest('.btn-add-product').dataset.productId);
         }
     });
 
-    [productSearchInput, filterFormato, filterAcabado, filterColor, filterBrand, filterCategory, filterStock].forEach(el => {
-        const eventName = el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change';
-        el.addEventListener(eventName, function() {
+    [productSearchInput, filterFormato, filterAcabado, filterBrand, filterCategory, filterStock].forEach(el => {
+        el.addEventListener(el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change', function () {
             currentProductsPage = 1;
             renderProductCards();
         });
     });
 
-    productsPrevPage.addEventListener('click', function() {
-        if (currentProductsPage > 1) {
-            currentProductsPage -= 1;
-            renderProductCards();
-        }
+    productsPrevPage.addEventListener('click', function () {
+        if (currentProductsPage > 1) { currentProductsPage--; renderProductCards(); }
+    });
+    productsNextPage.addEventListener('click', function () {
+        const totalPages = Math.max(1, Math.ceil(filterProducts().length / productsPerPage));
+        if (currentProductsPage < totalPages) { currentProductsPage++; renderProductCards(); }
     });
 
-    productsNextPage.addEventListener('click', function() {
-        const totalPages = Math.max(1, Math.ceil(filterProducts().length / productsPerPage));
-        if (currentProductsPage < totalPages) {
-            currentProductsPage += 1;
-            renderProductCards();
+    /* ================================================================
+       CLIENT SEARCH
+    ================================================================ */
+    function getCookie(name) {
+        const parts = (`; ${document.cookie}`).split(`; ${name}=`);
+        return parts.length === 2 ? parts.pop().split(';').shift() : '';
+    }
+
+    function hideClientResults() {
+        if (!clientSearchResults) return;
+        clientSearchResults.innerHTML = '';
+        clientSearchResults.classList.add('d-none');
+    }
+
+    function ensureClientOption(client) {
+        if (!clientSelect || !client || !client.id) return;
+        let option = clientSelect.querySelector(`option[value="${client.id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = String(client.id);
+            option.textContent = client.label || `${client.name} (${client.nit_ci})`;
+            clientSelect.appendChild(option);
+        } else if (client.label) {
+            option.textContent = client.label;
         }
-    });
+        clientSelect.value = String(client.id);
+        clientSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setSelectedClientFromSelect() {
+        if (!clientSelect || !clientSearchInput) return;
+        const selected = clientSelect.options[clientSelect.selectedIndex];
+        clientSearchInput.value = selected && selected.value ? selected.textContent : '';
+    }
+
+    function renderClientResults(items) {
+        if (!clientSearchResults) return;
+        if (!items.length) {
+            clientSearchResults.innerHTML = '<div class="list-group-item small text-muted">No se encontraron clientes.</div>';
+            clientSearchResults.classList.remove('d-none');
+            return;
+        }
+        clientSearchResults.innerHTML = items.map(item => `
+            <button type="button" class="list-group-item list-group-item-action client-result-item"
+                data-id="${item.id}" data-name="${item.name}" data-nit="${item.nit_ci}" data-label="${item.label}">
+                <div class="fw-semibold">${item.name}</div>
+                <div class="small text-muted">NIT/CI: ${item.nit_ci}${item.phone ? ` · Tel: ${item.phone}` : ''}</div>
+            </button>
+        `).join('');
+        clientSearchResults.classList.remove('d-none');
+    }
+
+    async function searchClients(query) {
+        if (!clientLookupUrl || !query || query.length < 2) { hideClientResults(); return; }
+        try {
+            const response = await fetch(`${clientLookupUrl}?q=${encodeURIComponent(query)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) { hideClientResults(); return; }
+            const data = await response.json();
+            renderClientResults(data.results || []);
+        } catch (_err) { hideClientResults(); }
+    }
+
+    function setClientQuickFeedback(message, type) {
+        if (!clientQuickFeedback) return;
+        clientQuickFeedback.className = `small mt-2 text-${type}`;
+        clientQuickFeedback.textContent = message;
+    }
+
+    async function quickCreateClient() {
+        if (!clientQuickCreateUrl) return;
+        const name  = (quickClientName.value || '').trim();
+        const nitCi = (quickClientNit.value || '').trim();
+        const phone = (quickClientPhone.value || '').trim();
+        const email = (quickClientEmail.value || '').trim();
+        if (!name || !nitCi) { setClientQuickFeedback('Nombre y NIT/CI son obligatorios.', 'danger'); return; }
+        const body = new URLSearchParams({ name, nit_ci: nitCi, phone, email });
+        try {
+            const response = await fetch(clientQuickCreateUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body,
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) { setClientQuickFeedback(data.message || 'No se pudo crear el cliente.', 'danger'); return; }
+            ensureClientOption(data.client);
+            setSelectedClientFromSelect();
+            clientQuickCreateBox.classList.add('d-none');
+            setClientQuickFeedback('', 'muted');
+            quickClientName.value = quickClientNit.value = quickClientPhone.value = quickClientEmail.value = '';
+            hideClientResults();
+        } catch (_err) { setClientQuickFeedback('Error de red al crear el cliente.', 'danger'); }
+    }
 
     if (clientSearchInput) {
         setSelectedClientFromSelect();
-
-        clientSearchInput.addEventListener('input', function() {
+        clientSearchInput.addEventListener('input', function () {
             const query = (clientSearchInput.value || '').trim();
-            if (clientSearchTimer) {
-                clearTimeout(clientSearchTimer);
-            }
-            clientSearchTimer = setTimeout(function() {
-                searchClients(query);
-            }, 250);
+            if (clientSearchTimer) clearTimeout(clientSearchTimer);
+            clientSearchTimer = setTimeout(() => searchClients(query), 250);
         });
     }
 
     if (clientSearchResults) {
-        clientSearchResults.addEventListener('click', function(e) {
+        clientSearchResults.addEventListener('click', function (e) {
             const button = e.target.closest('.client-result-item');
-            if (!button) {
-                return;
-            }
-            const selected = {
-                id: button.dataset.id,
-                name: button.dataset.name,
-                nit_ci: button.dataset.nit,
-                label: button.dataset.label,
-            };
-            ensureClientOption(selected);
+            if (!button) return;
+            ensureClientOption({ id: button.dataset.id, name: button.dataset.name, nit_ci: button.dataset.nit, label: button.dataset.label });
             setSelectedClientFromSelect();
             hideClientResults();
         });
     }
 
     if (clientClearButton) {
-        clientClearButton.addEventListener('click', function() {
-            if (clientSelect) {
-                clientSelect.value = '';
-            }
-            if (clientSearchInput) {
-                clientSearchInput.value = '';
-            }
+        clientClearButton.addEventListener('click', function () {
+            if (clientSelect) clientSelect.value = '';
+            if (clientSearchInput) clientSearchInput.value = '';
             hideClientResults();
         });
     }
 
     if (clientQuickCreateToggle) {
-        clientQuickCreateToggle.addEventListener('click', function() {
+        clientQuickCreateToggle.addEventListener('click', function () {
             clientQuickCreateBox.classList.toggle('d-none');
-            if (!clientQuickCreateBox.classList.contains('d-none')) {
-                quickClientName.focus();
-            }
+            if (!clientQuickCreateBox.classList.contains('d-none')) quickClientName.focus();
         });
     }
 
     if (clientQuickCancelButton) {
-        clientQuickCancelButton.addEventListener('click', function() {
+        clientQuickCancelButton.addEventListener('click', function () {
             clientQuickCreateBox.classList.add('d-none');
             setClientQuickFeedback('', 'muted');
         });
     }
 
-    if (clientQuickSaveButton) {
-        clientQuickSaveButton.addEventListener('click', quickCreateClient);
-    }
+    if (clientQuickSaveButton) clientQuickSaveButton.addEventListener('click', quickCreateClient);
 
-    document.addEventListener('click', function(e) {
-        if (!clientSearchBox || clientSearchBox.contains(e.target)) {
-            return;
-        }
+    document.addEventListener('click', function (e) {
+        if (!clientSearchBox || clientSearchBox.contains(e.target)) return;
         hideClientResults();
     });
 
-    fillFilterOptions(filterFormato, uniqueSortedValues('formato'));
-    fillFilterOptions(filterAcabado, uniqueSortedValues('acabado'));
-    fillFilterOptions(filterColor, uniqueSortedValues('color'));
-    fillFilterOptions(filterBrand, uniqueSortedValues('brand'));
-    fillFilterOptions(filterCategory, uniqueSortedValues('category'));
-    renderProductCards();
+    /* ================================================================
+       FORM SUBMIT GUARD
+    ================================================================ */
+    document.getElementById('sale-form').addEventListener('submit', function (e) {
+        // Sync all calculated values (quantity, ref_m2, cajas) to hidden inputs before submit
+        updateTotals();
 
-    document.querySelector('form').addEventListener('submit', function(e) {
-        refreshValidation();
-        if (submitButton.disabled) {
+        // Mark rows without a selected product as deleted so Django skips them
+        document.querySelectorAll('.formset-row').forEach(function (row) {
+            const productSelect = row.querySelector('select[name*="-product"]');
+            const deleteInput = row.querySelector('input[name*="-DELETE"]');
+            if (deleteInput && (!productSelect || !productSelect.value)) {
+                deleteInput.checked = true;
+            }
+        });
+
+        const okDup = validateDuplicates();
+        const okStock = validateStock();
+        const canSubmit = okDup && (!isConfirmedStatus() || okStock);
+
+        if (submitButton) {
+            submitButton.disabled = !canSubmit;
+        }
+
+        if (!canSubmit) {
             e.preventDefault();
+            let message = '';
+            if (!okDup) {
+                message = 'No se puede guardar: hay productos repetidos en el detalle.';
+            } else if (isConfirmedStatus() && !okStock) {
+                message = 'No se puede confirmar: una o más cantidades superan el stock disponible. Cambia a proforma o ajusta cantidades.';
+            }
+
+            if (step1Error && message) {
+                step1Error.textContent = message;
+                step1Error.classList.remove('d-none');
+            }
+
+            if (step3Error) {
+                step3Error.classList.add('d-none');
+            }
+
+            goToStep(1);
+            return;
+        }
+
+        if (step1Error) {
+            step1Error.classList.add('d-none');
+        }
+        if (step3Error) {
+            step3Error.classList.add('d-none');
         }
     });
 
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function () {
+            refreshValidation();
+        });
+    }
+
+    /* ================================================================
+       INIT
+    ================================================================ */
+    fillFilterOptions(filterFormato, uniqueSortedValues('formato'));
+    fillFilterOptions(filterAcabado, uniqueSortedValues('acabado'));
+    fillFilterOptions(filterBrand, uniqueSortedValues('brand'));
+    fillFilterOptions(filterCategory, uniqueSortedValues('category'));
+    renderProductCards();
     visibleRows().forEach(updateRowFromProduct);
     hideDeleteInputs();
     updateTotals();
     refreshValidation();
+
+    // If backend returned validation errors, reopen the relevant step.
+    if (serverErrorFlags) {
+        const hasClientErrors = serverErrorFlags.dataset.hasClientErrors === '1';
+        const hasProductErrors = serverErrorFlags.dataset.hasProductErrors === '1';
+        if (hasClientErrors) {
+            goToStep(2);
+        } else if (hasProductErrors) {
+            goToStep(1);
+        }
+    }
 });
 </script>
 {% endblock %}

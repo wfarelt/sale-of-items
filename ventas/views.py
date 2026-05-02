@@ -62,6 +62,16 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 		formset = SaleDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
+			new_status = form.cleaned_data.get("status")
+			if new_status == Sale.STATUS_CONFIRMED:
+				from caja.models import CashBox
+				try:
+					CashBox.validate_day_open(timezone.now())
+				except ValidationError as exc:
+					messages.error(request, str(exc))
+					form.add_error(None, str(exc))
+					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+
 			self.object = form.save(commit=False)
 			self.object.seller = request.user
 			self.object.save()
@@ -71,14 +81,15 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 
 			if self.object.status == self.object.STATUS_CONFIRMED:
 				from caja.models import CashBox
-				CashBox.validate_day_open(self.object.date)
 				try:
+					CashBox.validate_day_open(self.object.date)
 					self.object.apply_inventory_output()
+					CashBox.register_sale(self.object)
 				except ValidationError as exc:
 					messages.error(request, str(exc))
+					form.add_error(None, str(exc))
 					self.object.delete()
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-				CashBox.register_sale(self.object)
 				messages.success(request, "Venta registrada exitosamente.")
 			else:
 				messages.success(request, "Proforma guardada exitosamente.")
@@ -93,7 +104,7 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
 		products_qs = Product.objects.select_related(
-			"brand", "category", "formato", "acabado", "indicaciones_uso"
+			"brand", "category", "formato", "acabado", "indicaciones_uso", "metros_cuadrados_por_caja"
 		).filter(is_active=True)
 		kwargs["products_data"] = [
 			{
@@ -108,6 +119,7 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 				"formato": product.formato.name if product.formato else "",
 				"acabado": product.acabado.name if product.acabado else "",
 				"indicaciones_uso": product.indicaciones_uso.name if product.indicaciones_uso else "",
+				"m2_por_caja": float(product.metros_cuadrados_por_caja.value) if product.metros_cuadrados_por_caja else None,
 				"image": product.image.url if product.image else "",
 			}
 			for product in products_qs
@@ -140,6 +152,15 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 
 		if form.is_valid() and formset.is_valid():
 			new_status = form.cleaned_data.get("status")
+			if new_status == Sale.STATUS_CONFIRMED:
+				from caja.models import CashBox
+				try:
+					CashBox.validate_day_open(self.object.date)
+				except ValidationError as exc:
+					messages.error(request, str(exc))
+					form.add_error(None, str(exc))
+					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+
 			self.object = form.save(commit=False)
 			self.object.save()
 			formset.instance = self.object
@@ -148,13 +169,13 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 
 			if new_status == Sale.STATUS_CONFIRMED:
 				from caja.models import CashBox
-				CashBox.validate_day_open(self.object.date)
 				try:
 					self.object.apply_inventory_output()
+					CashBox.register_sale(self.object)
 				except ValidationError as exc:
 					messages.error(request, str(exc))
+					form.add_error(None, str(exc))
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-				CashBox.register_sale(self.object)
 				messages.success(request, "Proforma confirmada como venta exitosamente.")
 			else:
 				messages.success(request, "Proforma actualizada exitosamente.")
@@ -169,7 +190,7 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 		else:
 			kwargs["formset"] = SaleDetailFormSet(instance=self.object)
 		products_qs = Product.objects.select_related(
-			"brand", "category", "formato", "acabado", "indicaciones_uso"
+			"brand", "category", "formato", "acabado", "indicaciones_uso", "metros_cuadrados_por_caja"
 		).filter(is_active=True)
 		kwargs["products_data"] = [
 			{
@@ -184,6 +205,7 @@ class SaleUpdateView(SalesAccessMixin, UpdateView):
 				"formato": product.formato.name if product.formato else "",
 				"acabado": product.acabado.name if product.acabado else "",
 				"indicaciones_uso": product.indicaciones_uso.name if product.indicaciones_uso else "",
+				"m2_por_caja": float(product.metros_cuadrados_por_caja.value) if product.metros_cuadrados_por_caja else None,
 				"image": product.image.url if product.image else "",
 			}
 			for product in products_qs

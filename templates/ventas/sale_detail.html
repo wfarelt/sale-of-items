@@ -55,7 +55,9 @@
                     <th>Producto</th>
                     <th>Codigo</th>
                     <th class="text-center">Cantidad</th>
+                    <th class="text-center">Cajas</th>
                     <th class="text-end">Precio</th>
+                    <th class="text-end">Descuento</th>
                     <th class="text-end">Subtotal</th>
                 </tr>
             </thead>
@@ -65,16 +67,18 @@
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td>{{ detail.product.name }}</td>
                     <td><span class="badge text-bg-light border text-dark">{{ detail.product.code|default:"-" }}</span></td>
-                    <td class="text-center">{{ detail.quantity }}</td>
+                    <td class="text-center">{{ detail.quantity|floatformat:2 }}</td>
+                    <td class="text-center">{{ detail.cajas|default:"-" }}</td>
                     <td class="text-end">Bs {{ detail.price|floatformat:2 }}</td>
+                    <td class="text-end">Bs {{ detail.discount|floatformat:2 }}</td>
                     <td class="text-end fw-semibold">Bs {{ detail.subtotal|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">Sin detalles.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-4">Sin detalles.</td></tr>
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr class="table-light"><th colspan="5" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
+                <tr class="table-light"><th colspan="7" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
             </tfoot>
         </table>
     </div>

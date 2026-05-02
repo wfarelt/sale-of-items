@@ -61,7 +61,7 @@ class Sale(models.Model):
 		return f"Venta #{self.pk} - {self.client.name}"
 
 	def calculate_total(self):
-		total = sum(detail.quantity * detail.price for detail in self.saledetail_set.all())
+		total = sum(detail.subtotal() for detail in self.saledetail_set.all())
 		self.total = total
 		self.save(update_fields=["total"])
 		return total
@@ -115,6 +115,25 @@ class SaleDetail(models.Model):
 		validators=[MinValueValidator(Decimal("0.01"))],
 	)
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
+	discount = models.DecimalField(
+		max_digits=10,
+		decimal_places=2,
+		default=0,
+		verbose_name="Descuento",
+		validators=[MinValueValidator(Decimal("0.00"))],
+	)
+	ref_m2 = models.DecimalField(
+		max_digits=10,
+		decimal_places=2,
+		null=True,
+		blank=True,
+		verbose_name="Ref. m²",
+	)
+	cajas = models.PositiveIntegerField(
+		null=True,
+		blank=True,
+		verbose_name="Cajas",
+	)
 
 	class Meta:
 		ordering = ["sale"]
@@ -126,4 +145,6 @@ class SaleDetail(models.Model):
 		return f"{self.product.name} x {self.quantity}"
 
 	def subtotal(self):
-		return self.quantity * self.price
+		gross = self.quantity * self.price
+		net = gross - (self.discount or Decimal("0.00"))
+		return net if net > 0 else Decimal("0.00")

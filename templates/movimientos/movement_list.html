@@ -53,6 +53,7 @@
             <thead class="table-light">
                 <tr>
                     <th>N° Movimiento</th>
+                    <th>Fecha</th>
                     <th>Tipo</th>
                     <th>Referencia</th>
                     <th>Registrado por</th>
@@ -64,6 +65,7 @@
                 {% for movement in movements %}
                 <tr>
                     <td><span class="badge text-bg-secondary font-monospace">{{ movement.id }}</span></td>
+                    <td><small class="text-muted">{{ movement.date|date:'d/m/Y H:i' }}</small></td>
                     <td>
                         {% if movement.type == 'IN' %}
                             <span class="badge text-bg-success">Entrada</span>
@@ -88,7 +90,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No hay movimientos registrados.</td>
+                    <td colspan="7" class="text-center py-4 text-muted">No hay movimientos registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

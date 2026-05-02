@@ -29,11 +29,14 @@ class SaleForm(forms.ModelForm):
 class SaleDetailForm(forms.ModelForm):
 	class Meta:
 		model = SaleDetail
-		fields = ["product", "quantity", "price"]
+		fields = ["product", "quantity", "price", "discount", "ref_m2", "cajas"]
 		widgets = {
 			"product": forms.Select(attrs={"class": "form-select"}),
 			"quantity": forms.NumberInput(attrs={"class": "form-control", "min": "0.01", "step": "0.01"}),
 			"price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+			"discount": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
+			"ref_m2": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+			"cajas": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
 		}
 
 
@@ -50,11 +53,16 @@ class BaseSaleDetailFormSet(BaseInlineFormSet):
 
 			product = form.cleaned_data.get("product")
 			quantity = form.cleaned_data.get("quantity")
+			price = form.cleaned_data.get("price")
+			discount = form.cleaned_data.get("discount")
 			if not product or not quantity:
 				continue
 
 			if product.pk in products_qty:
 				raise ValidationError("No puedes repetir el mismo producto en una venta.")
+
+			if price is not None and discount is not None and discount > (quantity * price):
+				raise ValidationError(f"El descuento de {product.name} no puede ser mayor al subtotal bruto.")
 
 			products_qty[product.pk] = quantity
 
