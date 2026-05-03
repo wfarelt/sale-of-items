@@ -47,6 +47,18 @@ class Sale(models.Model):
 		related_name="canceled_sales",
 	)
 	canceled_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de anulacion")
+	delivered_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de entrega")
+	delivered_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		verbose_name="Entregada por",
+		related_name="delivered_sales",
+	)
+	received_by_name = models.CharField(max_length=120, blank=True, verbose_name="Recibido por")
+	received_by_doc = models.CharField(max_length=40, blank=True, verbose_name="Documento de quien recoge")
+	delivery_notes = models.TextField(blank=True, verbose_name="Observaciones de entrega")
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Total")
 	payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, verbose_name="Tipo de pago")
 	created_at = models.DateTimeField(auto_now_add=True)

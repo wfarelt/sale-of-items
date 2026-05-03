@@ -40,6 +40,29 @@ class SaleDetailForm(forms.ModelForm):
 		}
 
 
+class SaleDeliveryForm(forms.ModelForm):
+	class Meta:
+		model = Sale
+		fields = ["received_by_name", "received_by_doc", "delivery_notes"]
+		widgets = {
+			"received_by_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre completo de quien recoge"}),
+			"received_by_doc": forms.TextInput(attrs={"class": "form-control", "placeholder": "CI / NIT / Documento"}),
+			"delivery_notes": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Observaciones (opcional)"}),
+		}
+
+	def clean_received_by_name(self):
+		value = (self.cleaned_data.get("received_by_name") or "").strip()
+		if not value:
+			raise ValidationError("El nombre de quien recoge es obligatorio.")
+		return value
+
+	def clean_received_by_doc(self):
+		value = (self.cleaned_data.get("received_by_doc") or "").strip()
+		if not value:
+			raise ValidationError("El documento de quien recoge es obligatorio.")
+		return value
+
+
 class BaseSaleDetailFormSet(BaseInlineFormSet):
 	def clean(self):
 		super().clean()

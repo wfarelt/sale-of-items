@@ -85,8 +85,10 @@
                                         <li><a class="dropdown-item" href="{% url 'compras:list' %}"><i class="fas fa-dolly"></i> Compras</a></li>
                                         <li><a class="dropdown-item" href="{% url 'movimientos:list' %}"><i class="fas fa-arrows-rotate"></i> Movimientos</a></li>
                                     {% endif %}
-                                    {% if user.is_admin or user.is_vendedor %}
+                                    {% if user.is_admin or user.is_vendedor or user.is_almacen %}
                                         <li><a class="dropdown-item" href="{% url 'ventas:list' %}"><i class="fas fa-cash-register"></i> Ventas</a></li>
+                                    {% endif %}
+                                    {% if user.is_admin or user.is_vendedor %}
                                         <li><a class="dropdown-item" href="{% url 'caja:list' %}"><i class="fas fa-wallet"></i> Caja</a></li>
                                     {% endif %}
                                 {% endif %}

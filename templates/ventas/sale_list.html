@@ -8,7 +8,9 @@
         <h1 class="h4 mb-0">Ventas (Egresos)</h1>
         <p class="text-muted mb-0">Registro de salidas de inventario</p>
     </div>
-    <a href="{% url 'ventas:create' %}" class="btn btn-dark"><i class="fas fa-plus me-1"></i> Nueva venta</a>
+    {% if user.is_admin or user.is_vendedor %}
+        <a href="{% url 'ventas:create' %}" class="btn btn-dark"><i class="fas fa-plus me-1"></i> Nueva venta</a>
+    {% endif %}
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
@@ -35,8 +37,11 @@
                     <th>Vendedor</th>
                     <th>Fecha</th>
                     <th>Estado</th>
+                    <th>Entrega</th>
                     <th>Pago</th>
-                    <th class="text-end">Total</th>
+                    {% if not user.is_almacen %}
+                        <th class="text-end">Total</th>
+                    {% endif %}
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -56,8 +61,20 @@
                             <span class="badge text-bg-warning text-dark">Proforma</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if sale.delivered_at %}
+                            <span class="badge text-bg-primary">Entregada</span>
+                            <small class="text-muted d-block">{{ sale.delivered_at|date:'d/m/Y H:i' }}</small>
+                        {% elif sale.status == 'confirmada' %}
+                            <span class="badge text-bg-secondary">Pendiente</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge text-bg-light border text-dark">{{ sale.get_payment_type_display }}</span></td>
-                    <td class="text-end fw-semibold">Bs {{ sale.total|floatformat:2 }}</td>
+                    {% if not user.is_almacen %}
+                        <td class="text-end fw-semibold">Bs {{ sale.total|floatformat:2 }}</td>
+                    {% endif %}
                     <td class="text-end">
                         <a href="{% url 'ventas:detail' sale.pk %}" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye"></i></a>
                         {% if sale.status == 'proforma' %}
@@ -66,11 +83,14 @@
                         {% if user.is_admin and sale.status != 'anulada' %}
                             <a href="{% url 'ventas:delete' sale.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban"></i></a>
                         {% endif %}
+                        {% if sale.status == 'confirmada' and not sale.delivered_at and user.is_almacen or sale.status == 'confirmada' and not sale.delivered_at and user.is_admin %}
+                            <a href="{% url 'ventas:delivery' sale.pk %}" class="btn btn-sm btn-outline-primary" title="Registrar entrega"><i class="fas fa-truck-ramp-box"></i></a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">No hay ventas registradas.</td>
+                    <td colspan="{% if user.is_almacen %}8{% else %}9{% endif %}" class="text-center py-4 text-muted">No hay ventas registradas.</td>
                 </tr>
                 {% endfor %}
             </tbody>

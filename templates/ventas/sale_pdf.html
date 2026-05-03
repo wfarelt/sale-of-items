@@ -26,9 +26,8 @@
   .company-detail { font-size: 8pt; color: #666; line-height: 1.6; }
 
   /* ── Info grid ───────────────────────────────────── */
-  .info-grid { display: flex; gap: 0; margin-bottom: 14px; border: 1px solid #ccc; border-radius: 3px; overflow: hidden; }
-  .info-box { flex: 1; padding: 6px 10px; border-right: 1px solid #ccc; }
-  .info-box:last-child { border-right: none; }
+  .info-grid { display: flex; gap: 0; margin-bottom: 14px; }
+  .info-box { flex: 1; padding: 4px 10px; }
   .info-box .label { font-size: 7pt; color: #999; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
   .info-box .value { font-size: 9.5pt; font-weight: bold; }
 
@@ -122,9 +121,11 @@
       <th>Código</th>
       <th class="center">Cantidad</th>
       <th class="center">Cajas</th>
+      {% if show_prices %}
       <th class="right">Precio Unit.</th>
       <th class="right">Descuento</th>
       <th class="right">Subtotal</th>
+      {% endif %}
     </tr>
   </thead>
   <tbody>
@@ -135,14 +136,17 @@
       <td>{{ detail.product.code|default:"-" }}</td>
       <td class="center">{{ detail.quantity|floatformat:2 }}</td>
       <td class="center">{{ detail.cajas|default:"-" }}</td>
+      {% if show_prices %}
       <td class="right">{{ company.currency }} {{ detail.price|floatformat:2 }}</td>
       <td class="right">{{ company.currency }} {{ detail.discount|floatformat:2 }}</td>
       <td class="right">{{ company.currency }} {{ detail.subtotal|floatformat:2 }}</td>
+      {% endif %}
     </tr>
     {% empty %}
-    <tr><td colspan="8" class="center" style="color:#aaa;padding:12px;">Sin detalles.</td></tr>
+    <tr><td colspan="{% if show_prices %}8{% else %}5{% endif %}" class="center" style="color:#aaa;padding:12px;">Sin detalles.</td></tr>
     {% endfor %}
   </tbody>
+  {% if show_prices %}
   <tfoot>
     <tr>
       <td colspan="7" class="right" style="font-size:9pt;color:#666;">Descuento total</td>
@@ -153,6 +157,7 @@
       <td class="right">{{ company.currency }} {{ sale.total|floatformat:2 }}</td>
     </tr>
   </tfoot>
+  {% endif %}
 </table>
 
 {% if sale.status == 'anulada' %}
@@ -165,14 +170,35 @@
 <!-- Firmas -->
 <div class="signatures">
   <div class="signature-box">
-    <div class="signature-line">{{ sale.seller.get_full_name|default:sale.seller.username }}</div>
-    <div class="signature-label">Quien entrega</div>
+    <div class="signature-line">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% elif sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</div>
+    <div class="signature-label">Entrega</div>
   </div>
   <div class="signature-box">
-    <div class="signature-line">{{ sale.client.name }}</div>
-    <div class="signature-label">Quien recibe</div>
+    <div class="signature-line">{{ sale.received_by_name|default:sale.client.name }}</div>
+    <div class="signature-label">Recibe</div>
   </div>
 </div>
+
+{% if sale.delivered_at %}
+<div class="info-grid" style="margin-top: 8px;">
+  <div class="info-box">
+    <div class="label">Fecha</div>
+    <div class="value">{{ sale.delivered_at|date:"d/m/Y H:i" }}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Entrega</div>
+    <div class="value">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% else %}-{% endif %}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Recibe</div>
+    <div class="value">{{ sale.received_by_name|default:"-" }}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Documento</div>
+    <div class="value">{{ sale.received_by_doc|default:"-" }}</div>
+  </div>
+</div>
+{% endif %}
 
 <div class="footer">
   {{ company.name }} · Generado el {{ now|date:"d/m/Y H:i" }}{% if company.city %} · {{ company.city }}{% if company.country %}, {{ company.country }}{% endif %}{% endif %}

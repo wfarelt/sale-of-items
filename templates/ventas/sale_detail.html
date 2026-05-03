@@ -8,8 +8,13 @@
         <h1 class="h4 mb-0">Venta #{{ sale.id }}</h1>
         <p class="text-muted mb-0">Detalle de egreso</p>
     </div>
-    <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver</a>
-    <a href="{% url 'ventas:pdf' sale.id %}" target="_blank" class="btn btn-outline-dark"><i class="fas fa-file-pdf me-1"></i> Imprimir PDF</a>
+    <div class="d-flex gap-2">
+        {% if sale.status == 'confirmada' and not sale.delivered_at and user.is_almacen or sale.status == 'confirmada' and not sale.delivered_at and user.is_admin %}
+            <a href="{% url 'ventas:delivery' sale.id %}" class="btn btn-outline-primary"><i class="fas fa-truck-ramp-box me-1"></i> Registrar entrega</a>
+        {% endif %}
+        <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+        <a href="{% url 'ventas:pdf' sale.id %}" target="_blank" class="btn btn-outline-dark"><i class="fas fa-file-pdf me-1"></i> Imprimir PDF</a>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -36,6 +41,35 @@
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Pago</small><div class="fw-semibold">{{ sale.get_payment_type_display }}</div></div></div>
     </div>
+    {% if not user.is_almacen %}
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Total</small><div class="fw-semibold">Bs {{ sale.total|floatformat:2 }}</div></div></div>
+    </div>
+    {% endif %}
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Entrega</small>
+            <div class="fw-semibold">
+                {% if sale.delivered_at %}
+                    Entregada
+                {% elif sale.status == 'confirmada' %}
+                    Pendiente
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+            {% if sale.delivered_at %}
+                <small class="text-muted d-block">{{ sale.delivered_at|date:'d/m/Y H:i' }}</small>
+            {% endif %}
+        </div></div>
+    </div>
+    {% if sale.delivered_at %}
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Entregada por</small><div class="fw-semibold">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% else %}-{% endif %}</div></div></div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Recibido por</small><div class="fw-semibold">{{ sale.received_by_name|default:'-' }}</div><small class="text-muted d-block">Doc: {{ sale.received_by_doc|default:'-' }}</small></div></div>
+    </div>
+    {% endif %}
     {% if sale.status == 'anulada' %}
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Anulada por</small><div class="fw-semibold">{% if sale.canceled_by %}{{ sale.canceled_by.get_full_name|default:sale.canceled_by.username }}{% else %}-{% endif %}</div></div></div>
@@ -56,9 +90,11 @@
                     <th>Codigo</th>
                     <th class="text-center">Cantidad</th>
                     <th class="text-center">Cajas</th>
-                    <th class="text-end">Precio</th>
-                    <th class="text-end">Descuento</th>
-                    <th class="text-end">Subtotal</th>
+                    {% if not user.is_almacen %}
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">Descuento</th>
+                        <th class="text-end">Subtotal</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -69,17 +105,21 @@
                     <td><span class="badge text-bg-light border text-dark">{{ detail.product.code|default:"-" }}</span></td>
                     <td class="text-center">{{ detail.quantity|floatformat:2 }}</td>
                     <td class="text-center">{{ detail.cajas|default:"-" }}</td>
-                    <td class="text-end">Bs {{ detail.price|floatformat:2 }}</td>
-                    <td class="text-end">Bs {{ detail.discount|floatformat:2 }}</td>
-                    <td class="text-end fw-semibold">Bs {{ detail.subtotal|floatformat:2 }}</td>
+                    {% if not user.is_almacen %}
+                        <td class="text-end">Bs {{ detail.price|floatformat:2 }}</td>
+                        <td class="text-end">Bs {{ detail.discount|floatformat:2 }}</td>
+                        <td class="text-end fw-semibold">Bs {{ detail.subtotal|floatformat:2 }}</td>
+                    {% endif %}
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-4">Sin detalles.</td></tr>
+                <tr><td colspan="{% if user.is_almacen %}5{% else %}8{% endif %}" class="text-center text-muted py-4">Sin detalles.</td></tr>
                 {% endfor %}
             </tbody>
+            {% if not user.is_almacen %}
             <tfoot>
                 <tr class="table-light"><th colspan="7" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
             </tfoot>
+            {% endif %}
         </table>
     </div>
 </div>

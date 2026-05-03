@@ -10,13 +10,23 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from config.pdf_utils import render_to_pdf
 from empresas.models import Company
 from productos.models import Product
-from .forms import SaleDetailFormSet, SaleForm
+from .forms import SaleDeliveryForm, SaleDetailFormSet, SaleForm
 from .models import Sale
 
 
 class SalesAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 	def test_func(self):
+		return self.request.user.is_admin or self.request.user.is_vendedor or self.request.user.is_almacen
+
+
+class SalesWriteAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+	def test_func(self):
 		return self.request.user.is_admin or self.request.user.is_vendedor
+
+
+class SalesDeliveryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+	def test_func(self):
+		return self.request.user.is_admin or self.request.user.is_almacen
 
 
 class SaleListView(SalesAccessMixin, ListView):
@@ -49,7 +59,7 @@ class SaleDetailView(SalesAccessMixin, DetailView):
 		return context
 
 
-class SaleCreateView(SalesAccessMixin, CreateView):
+class SaleCreateView(SalesWriteAccessMixin, CreateView):
 	model = Sale
 	form_class = SaleForm
 	template_name = "ventas/sale_form.html"
@@ -127,7 +137,7 @@ class SaleCreateView(SalesAccessMixin, CreateView):
 		return super().get_context_data(**kwargs)
 
 
-class SaleUpdateView(SalesAccessMixin, UpdateView):
+class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 	model = Sale
 	form_class = SaleForm
 	template_name = "ventas/sale_form.html"
@@ -256,15 +266,61 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 		return redirect(self.success_url)
 
 
+class SaleDeliveryView(SalesDeliveryAccessMixin, UpdateView):
+	model = Sale
+	form_class = SaleDeliveryForm
+	template_name = "ventas/sale_delivery_form.html"
+
+	def get_success_url(self):
+		return reverse_lazy("ventas:detail", kwargs={"pk": self.object.pk})
+
+	def dispatch(self, request, *args, **kwargs):
+		self.object = self.get_object()
+		if self.object.status == Sale.STATUS_CANCELED:
+			messages.error(request, "No puedes registrar entrega en una venta anulada.")
+			return redirect("ventas:detail", pk=self.object.pk)
+		if self.object.status != Sale.STATUS_CONFIRMED:
+			messages.error(request, "Solo puedes registrar entrega en ventas confirmadas.")
+			return redirect("ventas:detail", pk=self.object.pk)
+		return super().dispatch(request, *args, **kwargs)
+
+	def get_initial(self):
+		initial = super().get_initial()
+		if self.object.received_by_name:
+			initial["received_by_name"] = self.object.received_by_name
+		if self.object.received_by_doc:
+			initial["received_by_doc"] = self.object.received_by_doc
+		if self.object.delivery_notes:
+			initial["delivery_notes"] = self.object.delivery_notes
+		return initial
+
+	@transaction.atomic
+	def form_valid(self, form):
+		self.object = form.save(commit=False)
+		self.object.delivered_at = timezone.now()
+		self.object.delivered_by = self.request.user
+		self.object.save(update_fields=[
+			"received_by_name",
+			"received_by_doc",
+			"delivery_notes",
+			"delivered_at",
+			"delivered_by",
+			"updated_at",
+		])
+		messages.success(self.request, "Entrega registrada exitosamente.")
+		return redirect(self.get_success_url())
+
+
 class SalePDFView(SalesAccessMixin, View):
 	def get(self, request, pk, *args, **kwargs):
-		sale = Sale.objects.select_related("client", "seller").get(pk=pk)
+		sale = Sale.objects.select_related("client", "seller", "delivered_by").get(pk=pk)
 		details = sale.saledetail_set.select_related("product").all()
 		context = {
 			"sale": sale,
 			"details": details,
 			"company": Company.get_solo(),
 			"now": timezone.localtime(),
+			"show_prices": not request.user.is_almacen,
 		}
 		filename = f"venta_{sale.id}.pdf"
 		return render_to_pdf("ventas/sale_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
