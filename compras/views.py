@@ -45,6 +45,7 @@ class PurchaseDetailView(InventoryAccessMixin, DetailView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context["details"] = self.object.purchasedetail_set.select_related("product").all()
+		context["backorder_sales"] = self.object.backorder_sales.select_related("client").all()
 		return context
 
 
@@ -115,6 +116,15 @@ class PurchaseUpdateView(InventoryAccessMixin, UpdateView):
 			if old_status != "recibida" and self.object.status == "recibida":
 				self.object.apply_inventory_update()
 				messages.info(request, f"Stock actualizado: +{sum(d.quantity for d in self.object.purchasedetail_set.all())} unidades.")
+				# Auto-confirm any ORDERED sales backed by this purchase
+				from ventas.models import Sale
+				backorder_sales = list(self.object.backorder_sales.filter(status=Sale.STATUS_ORDERED))
+				for sale in backorder_sales:
+					sale.status = Sale.STATUS_CONFIRMED_FLOW
+					sale.save(update_fields=["status", "updated_at"])
+				if backorder_sales:
+					names = ", ".join(f"Pedido #{s.pk}" for s in backorder_sales)
+					messages.success(request, f"Ventas confirmadas automáticamente al recibir la compra: {names}.")
 
 			messages.success(request, "Compra actualizada exitosamente.")
 			return redirect(self.success_url)

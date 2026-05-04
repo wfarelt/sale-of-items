@@ -87,6 +87,7 @@ class Product(models.Model):
 	price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
 	image = models.ImageField(upload_to="productos/", blank=True, null=True, verbose_name="Imagen")
 	stock = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Stock")
+	stock_reservado = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Stock reservado")
 	stock_minimo = models.PositiveIntegerField(default=0, verbose_name="Stock mínimo")
 	color = models.CharField(max_length=50, blank=True, verbose_name="Color")
 	brand = models.ForeignKey(Brand, on_delete=models.PROTECT, verbose_name="Marca", null=True, blank=True)
@@ -107,3 +108,8 @@ class Product(models.Model):
 	def __str__(self):
 		return self.name
 
+	@property
+	def available_stock(self):
+		from decimal import Decimal
+		available = self.stock - self.stock_reservado
+		return available if available > Decimal("0") else Decimal("0")

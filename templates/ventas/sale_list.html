@@ -9,7 +9,10 @@
         <p class="text-muted mb-0">Registro de salidas de inventario</p>
     </div>
     {% if user.is_admin or user.is_vendedor %}
-        <a href="{% url 'ventas:create' %}" class="btn btn-dark"><i class="fas fa-plus me-1"></i> Nueva venta</a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'ventas:aging_report' %}" class="btn btn-outline-secondary"><i class="fas fa-chart-bar me-1"></i> Antigüedad</a>
+            <a href="{% url 'ventas:create' %}" class="btn btn-dark"><i class="fas fa-plus me-1"></i> Nueva venta</a>
+        </div>
     {% endif %}
 </div>
 
@@ -71,7 +74,15 @@
                             <span class="text-muted">-</span>
                         {% endif %}
                     </td>
-                    <td><span class="badge text-bg-light border text-dark">{{ sale.get_payment_type_display }}</span></td>
+                    <td>
+                        {% if sale.payment_status == 'PAID' %}
+                            <span class="badge text-bg-success">{{ sale.payment_status }}</span>
+                        {% elif sale.payment_status == 'PARTIAL' %}
+                            <span class="badge text-bg-warning text-dark">{{ sale.payment_status }}</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">{{ sale.payment_status }}</span>
+                        {% endif %}
+                    </td>
                     {% if not user.is_almacen %}
                         <td class="text-end fw-semibold">Bs {{ sale.total|floatformat:2 }}</td>
                     {% endif %}

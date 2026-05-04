@@ -18,7 +18,9 @@
                 <div
                     id="server-error-flags"
                     class="d-none"
-                    data-has-client-errors="{% if form.client.errors or form.payment_type.errors or form.status.errors %}1{% else %}0{% endif %}"
+                    data-has-client-errors="{% if form.client.errors %}1{% else %}0{% endif %}"
+                    data-has-payment-errors="{% if form.upfront_amount.errors or form.payment_type.errors %}1{% else %}0{% endif %}"
+                    data-has-status-errors="{% if form.commercial_condition.errors or form.status.errors %}1{% else %}0{% endif %}"
                     data-has-product-errors="{% if formset.non_form_errors or formset.total_error_count %}1{% else %}0{% endif %}"
                 ></div>
 
@@ -31,11 +33,21 @@
                     <i class="fas fa-chevron-right text-muted small"></i>
                     <button type="button" class="btn step-pill" data-step="2" disabled>
                         <span class="step-number">2</span>
-                        <span class="step-label">Cliente &amp; Pago</span>
+                        <span class="step-label">Cliente</span>
                     </button>
                     <i class="fas fa-chevron-right text-muted small"></i>
                     <button type="button" class="btn step-pill" data-step="3" disabled>
                         <span class="step-number">3</span>
+                        <span class="step-label">Estado</span>
+                    </button>
+                    <i class="fas fa-chevron-right text-muted small d-none" id="stepper-sep-pago"></i>
+                    <button type="button" class="btn step-pill d-none" id="pill-pago" data-step="4" disabled>
+                        <span class="step-number">4</span>
+                        <span class="step-label">Pago</span>
+                    </button>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <button type="button" class="btn step-pill" id="pill-confirm" data-step="5" disabled>
+                        <span class="step-number" id="confirm-step-number">4</span>
                         <span class="step-label">Confirmación</span>
                     </button>
                 </div>
@@ -194,10 +206,10 @@
                         </div>
                     </div>
 
-                    <!-- ======== PASO 2: Cliente & Pago ======== -->
+                    <!-- ======== PASO 2: Cliente ======== -->
                     <div id="step-panel-2" class="step-panel d-none">
                         <div class="row g-4 mb-4">
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <div class="card border h-100">
                                     <div class="card-header bg-light fw-semibold">
                                         <i class="fas fa-user me-2"></i>Cliente
@@ -253,26 +265,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-12 col-md-6">
-                                <div class="card border h-100">
-                                    <div class="card-header bg-light fw-semibold">
-                                        <i class="fas fa-credit-card me-2"></i>Pago
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-3">
-                                            <label class="form-label" for="id_payment_type">Tipo de pago <span class="text-danger">*</span></label>
-                                            {{ form.payment_type }}
-                                            <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
-                                        </div>
-                                        <div>
-                                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
-                                            {{ form.status }}
-                                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <div id="step2-error" class="alert alert-danger d-none mb-3"></div>
@@ -286,8 +278,79 @@
                         </div>
                     </div>
 
-                    <!-- ======== PASO 3: Confirmación ======== -->
+                    <!-- ======== PASO 3: Estado ======== -->
                     <div id="step-panel-3" class="step-panel d-none">
+                        <div class="row g-4 mb-4">
+                            <div class="col-12">
+                                <div class="card border h-100">
+                                    <div class="card-header bg-light fw-semibold">
+                                        <i class="fas fa-tag me-2"></i>Estado de la venta
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="id_commercial_condition">Condición comercial <span class="text-danger">*</span></label>
+                                            {{ form.commercial_condition }}
+                                            <div class="text-danger small mt-1">{{ form.commercial_condition.errors|striptags }}</div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="id_status">Estado <span class="text-danger">*</span></label>
+                                            {{ form.status }}
+                                            <div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="step3-error" class="alert alert-danger d-none mb-3"></div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="btn-step3-prev" class="btn btn-outline-secondary">
+                                <i class="fas fa-chevron-left me-1"></i> Anterior
+                            </button>
+                            <button type="button" id="btn-step3-next" class="btn btn-dark">
+                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ======== PASO 4: Pago ======== -->
+                    <div id="step-panel-4" class="step-panel d-none">
+                        <div class="row g-4 mb-4">
+                            <div class="col-12">
+                                <div class="card border h-100">
+                                    <div class="card-header bg-light fw-semibold">
+                                        <i class="fas fa-credit-card me-2"></i>Pago
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="id_upfront_amount">Pago inicial (Bs)</label>
+                                            {{ form.upfront_amount }}
+                                            <div class="form-text">En ventas al contado es obligatorio. En crédito es opcional.</div>
+                                            <div class="text-danger small mt-1">{{ form.upfront_amount.errors|striptags }}</div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="id_payment_type">Método de pago inicial</label>
+                                            {{ form.payment_type }}
+                                            <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="step4-error" class="alert alert-danger d-none mb-3"></div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="btn-step4-prev" class="btn btn-outline-secondary">
+                                <i class="fas fa-chevron-left me-1"></i> Anterior
+                            </button>
+                            <button type="button" id="btn-step4-next" class="btn btn-dark">
+                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ======== PASO 5: Confirmación ======== -->
+                    <div id="step-panel-5" class="step-panel d-none">
                         <div class="row g-3 mb-4">
                             <div class="col-12">
                                 <div class="card border">
@@ -301,12 +364,20 @@
                                                 <div class="fw-semibold" id="confirm-client">—</div>
                                             </div>
                                             <div class="col-md-4">
-                                                <div class="text-muted small">Tipo de pago</div>
-                                                <div class="fw-semibold" id="confirm-payment">—</div>
+                                                <div class="text-muted small">Condición comercial</div>
+                                                <div class="fw-semibold" id="confirm-condition">—</div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="text-muted small">Estado</div>
                                                 <div class="fw-semibold" id="confirm-status">—</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="text-muted small">Pago inicial</div>
+                                                <div class="fw-semibold" id="confirm-upfront">—</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="text-muted small">Método de pago</div>
+                                                <div class="fw-semibold" id="confirm-payment">—</div>
                                             </div>
                                         </div>
 
@@ -340,10 +411,10 @@
                             </div>
                         </div>
 
-                        <div id="step3-error" class="alert alert-danger d-none mb-3"></div>
+                        <div id="step5-error" class="alert alert-danger d-none mb-3"></div>
 
                         <div class="d-flex justify-content-between">
-                            <button type="button" id="btn-step3-prev" class="btn btn-outline-secondary">
+                            <button type="button" id="btn-step5-prev" class="btn btn-outline-secondary">
                                 <i class="fas fa-chevron-left me-1"></i> Anterior
                             </button>
                             <button id="btn-submit-sale" type="submit" class="btn btn-success px-4">
@@ -533,28 +604,50 @@ document.addEventListener('DOMContentLoaded', function () {
        STEPPER
     ================================================================ */
     let currentStep = 1;
-    const totalSteps = 3;
     const serverErrorFlags = document.getElementById('server-error-flags');
-    const step3Error = document.getElementById('step3-error');
     const step1Error = document.getElementById('step1-error');
     const statusSelect = document.getElementById('id_status');
+    const commercialConditionSelect = document.getElementById('id_commercial_condition');
+    const upfrontAmountInput = document.getElementById('id_upfront_amount');
 
     function isConfirmedStatus() {
         return statusSelect && statusSelect.value === 'confirmada';
     }
 
+    // Returns the ordered list of panel numbers for the current mode
+    function getFlow() {
+        return isConfirmedStatus() ? [1, 2, 3, 4, 5] : [1, 2, 3, 5];
+    }
+
+    function updateStepper() {
+        const confirmed = isConfirmedStatus();
+        const pagoPill = document.getElementById('pill-pago');
+        const pagoSep  = document.getElementById('stepper-sep-pago');
+        const confirmNum = document.getElementById('confirm-step-number');
+        const btn3Next = document.getElementById('btn-step3-next');
+        if (pagoPill)   pagoPill.classList.toggle('d-none', !confirmed);
+        if (pagoSep)    pagoSep.classList.toggle('d-none', !confirmed);
+        if (confirmNum) confirmNum.textContent = confirmed ? '5' : '4';
+        if (btn3Next)   btn3Next.innerHTML = confirmed
+            ? 'Siguiente <i class="fas fa-chevron-right ms-1"></i>'
+            : 'Finalizar <i class="fas fa-check ms-1"></i>';
+    }
+
     function goToStep(step) {
-        for (let i = 1; i <= totalSteps; i++) {
+        const flow = getFlow();
+        const flowIndex = flow.indexOf(step);
+        for (let i = 1; i <= 5; i++) {
             const panel = document.getElementById(`step-panel-${i}`);
             if (panel) panel.classList.toggle('d-none', i !== step);
-            const pill = document.querySelector(`.step-pill[data-step="${i}"]`);
-            if (pill) {
-                pill.classList.remove('step-pill-active', 'step-pill-done');
-                pill.disabled = (i > step);
-                if (i < step) pill.classList.add('step-pill-done');
-                if (i === step) pill.classList.add('step-pill-active');
-            }
         }
+        flow.forEach((panelNum, idx) => {
+            const pill = document.querySelector(`.step-pill[data-step="${panelNum}"]`);
+            if (!pill) return;
+            pill.classList.remove('step-pill-active', 'step-pill-done');
+            pill.disabled = (idx > flowIndex);
+            if (idx < flowIndex) pill.classList.add('step-pill-done');
+            if (idx === flowIndex) pill.classList.add('step-pill-active');
+        });
         currentStep = step;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -604,7 +697,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         errorBox.classList.add('d-none');
-        buildConfirmation();
         goToStep(3);
     });
 
@@ -612,6 +704,75 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btn-step3-prev').addEventListener('click', function () {
         goToStep(2);
     });
+
+    /* Step 3 → 4 (confirmada) or 5 (proforma/others) */
+    document.getElementById('btn-step3-next').addEventListener('click', function () {
+        const errorBox = document.getElementById('step3-error');
+        if (!commercialConditionSelect || !commercialConditionSelect.value) {
+            errorBox.textContent = 'Selecciona una condición comercial para continuar.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        if (!statusSelect || !statusSelect.value) {
+            errorBox.textContent = 'Selecciona estado para continuar.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        errorBox.classList.add('d-none');
+        if (isConfirmedStatus()) {
+            goToStep(4);
+        } else {
+            buildConfirmation();
+            goToStep(5);
+        }
+    });
+
+    /* Step 4 → 3 */
+    document.getElementById('btn-step4-prev').addEventListener('click', function () {
+        goToStep(3);
+    });
+
+    /* Step 4 → 5 */
+    document.getElementById('btn-step4-next').addEventListener('click', function () {
+        const errorBox = document.getElementById('step4-error');
+        const paymentSelect = document.getElementById('id_payment_type');
+        const conditionText = commercialConditionSelect
+            ? (commercialConditionSelect.options[commercialConditionSelect.selectedIndex]?.textContent?.toLowerCase() || '')
+            : '';
+        const isCashCondition = conditionText.includes('contado') || conditionText.includes('(0') || conditionText.includes('0 día') || conditionText.includes('0 dias');
+        const upfrontAmount = parseFloat(upfrontAmountInput?.value || '0');
+        if (isCashCondition) {
+            if (!(upfrontAmount > 0)) {
+                errorBox.textContent = 'En ventas al contado debes registrar un pago inicial mayor a 0.';
+                errorBox.classList.remove('d-none');
+                return;
+            }
+            if (!paymentSelect || !paymentSelect.value) {
+                errorBox.textContent = 'Selecciona el método para el pago inicial.';
+                errorBox.classList.remove('d-none');
+                return;
+            }
+        }
+        if (upfrontAmount > 0 && (!paymentSelect || !paymentSelect.value)) {
+            errorBox.textContent = 'Selecciona método de pago para registrar el pago inicial.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        errorBox.classList.add('d-none');
+        buildConfirmation();
+        goToStep(5);
+    });
+
+    /* Step 5 → 4 (confirmada) or 3 (proforma/others) */
+    document.getElementById('btn-step5-prev').addEventListener('click', function () {
+        goToStep(isConfirmedStatus() ? 4 : 3);
+    });
+
+    // Update stepper when status changes
+    if (statusSelect) statusSelect.addEventListener('change', updateStepper);
+
+    // Initialize stepper state on page load
+    updateStepper();
 
     function buildConfirmation() {
         updateTotals();
@@ -621,10 +782,19 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('confirm-client').textContent =
             selectedOption && selectedOption.value ? selectedOption.textContent : '—';
 
+        // Commercial condition
+        const conditionSelect = document.getElementById('id_commercial_condition');
+        document.getElementById('confirm-condition').textContent =
+            conditionSelect ? conditionSelect.options[conditionSelect.selectedIndex].textContent : '—';
+
         // Payment type
         const paymentSelect = document.getElementById('id_payment_type');
         document.getElementById('confirm-payment').textContent =
-            paymentSelect ? paymentSelect.options[paymentSelect.selectedIndex].textContent : '—';
+            paymentSelect && paymentSelect.value ? paymentSelect.options[paymentSelect.selectedIndex].textContent : '—';
+
+        // Upfront payment
+        const upfrontAmount = parseFloat(document.getElementById('id_upfront_amount')?.value || '0');
+        document.getElementById('confirm-upfront').textContent = upfrontAmount > 0 ? `Bs ${upfrontAmount.toFixed(2)}` : 'Sin pago inicial';
 
         // Status
         const statusSelect = document.getElementById('id_status');
@@ -702,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (f.acabado && product.acabado !== f.acabado) return false;
             if (f.brand && product.brand !== f.brand) return false;
             if (f.category && product.category !== f.category) return false;
-            if (f.onlyStock && product.stock <= 0) return false;
+            if (f.onlyStock && product.available_stock <= 0) return false;
             if (f.search) {
                 const text = [
                     product.code, product.name, product.brand, product.category,
@@ -737,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         productCardList.innerHTML = pagedProducts.map(product => {
-            const outOfStock = product.stock <= 0;
+            const outOfStock = product.available_stock <= 0;
             return `
                 <div class="col-12 col-md-6">
                     <div class="product-card">
@@ -750,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div class="product-card-meta">Color: ${product.color || '-'}</div>
                             <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
                                 <span class="fw-bold">Bs ${parseFloat(product.price).toFixed(2)}</span>
-                                <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Stock: ${product.stock}</span>
+                                <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Disp: ${product.available_stock}</span>
                             </div>
                             <button type="button" class="btn btn-sm ${outOfStock ? 'btn-secondary' : 'btn-dark'} w-100 btn-add-product" data-product-id="${product.id}" ${outOfStock ? 'disabled' : ''}>
                                 <i class="fas fa-cart-plus me-1"></i> ${outOfStock ? 'Sin stock' : 'Agregar'}
@@ -837,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!productSelect || !quantityInput || !productSelect.value) return;
             const meta = productsMap.get(productSelect.value);
             const qty = parseFloat(quantityInput.value || '0');
-            if (meta && qty > meta.stock) { valid = false; row.classList.add('table-warning'); }
+            if (meta && qty > meta.available_stock) { valid = false; row.classList.add('table-warning'); }
         });
         stockAlert.classList.toggle('d-none', valid);
         return valid;
@@ -1209,8 +1379,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 step1Error.classList.remove('d-none');
             }
 
-            if (step3Error) {
-                step3Error.classList.add('d-none');
+            if (step4Error) {
+                step4Error.classList.add('d-none');
             }
 
             goToStep(1);
@@ -1220,8 +1390,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (step1Error) {
             step1Error.classList.add('d-none');
         }
-        if (step3Error) {
-            step3Error.classList.add('d-none');
+        if (step4Error) {
+            step4Error.classList.add('d-none');
         }
     });
 
@@ -1247,9 +1417,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // If backend returned validation errors, reopen the relevant step.
     if (serverErrorFlags) {
         const hasClientErrors = serverErrorFlags.dataset.hasClientErrors === '1';
+        const hasPaymentErrors = serverErrorFlags.dataset.hasPaymentErrors === '1';
         const hasProductErrors = serverErrorFlags.dataset.hasProductErrors === '1';
         if (hasClientErrors) {
             goToStep(2);
+        } else if (hasPaymentErrors) {
+            goToStep(3);
         } else if (hasProductErrors) {
             goToStep(1);
         }

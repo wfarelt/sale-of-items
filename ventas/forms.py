@@ -4,28 +4,91 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import Sale, SaleDetail
+from .models import CommercialCondition, PaymentMethod, Sale, SaleDetail
 
 
 class SaleForm(forms.ModelForm):
+	upfront_amount = forms.DecimalField(
+		required=False,
+		min_value=Decimal("0.01"),
+		decimal_places=2,
+		max_digits=12,
+		label="Pago inicial",
+		widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "0.00"}),
+	)
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields["client"].queryset = self.fields["client"].queryset.filter(is_active=True)
+		self.fields["commercial_condition"].queryset = CommercialCondition.objects.filter(is_active=True)
+		self.fields["payment_type"].required = False
 		self.fields["status"].choices = [
 			(Sale.STATUS_PROFORMA, "Proforma"),
 			(Sale.STATUS_CONFIRMED, "Confirmada"),
 		]
 		if not self.instance.pk:
 			self.fields["status"].initial = Sale.STATUS_PROFORMA
+			cash_condition = CommercialCondition.objects.filter(code=CommercialCondition.CODE_CASH, is_active=True).first()
+			if cash_condition:
+				self.fields["commercial_condition"].initial = cash_condition
 
 	class Meta:
 		model = Sale
-		fields = ["client", "payment_type", "status"]
+		fields = ["client", "commercial_condition", "payment_type", "status"]
 		widgets = {
 			"client": forms.Select(attrs={"class": "form-select"}),
+			"commercial_condition": forms.Select(attrs={"class": "form-select"}),
 			"payment_type": forms.Select(attrs={"class": "form-select"}),
 			"status": forms.Select(attrs={"class": "form-select"}),
 		}
+
+	def clean(self):
+		cleaned_data = super().clean()
+		status = cleaned_data.get("status")
+		condition = cleaned_data.get("commercial_condition")
+		payment_type = cleaned_data.get("payment_type")
+		upfront_amount = cleaned_data.get("upfront_amount")
+
+		if status == Sale.STATUS_CONFIRMED:
+			if not condition:
+				self.add_error("commercial_condition", "Selecciona una condición comercial.")
+			elif condition.is_cash_sale:
+				if not payment_type:
+					self.add_error("payment_type", "Selecciona el método de pago para la venta al contado.")
+				if upfront_amount is None:
+					self.add_error("upfront_amount", "En contado debes registrar al menos un pago inicial.")
+
+		if upfront_amount is not None and not payment_type:
+			self.add_error("payment_type", "Selecciona método de pago para registrar el pago inicial.")
+
+		return cleaned_data
+
+
+class SalePaymentForm(forms.Form):
+	method = forms.ModelChoiceField(
+		queryset=PaymentMethod.objects.filter(is_active=True),
+		label="Método de pago",
+		widget=forms.Select(attrs={"class": "form-select"}),
+	)
+	amount = forms.DecimalField(
+		min_value=Decimal("0.01"),
+		max_digits=12,
+		decimal_places=2,
+		label="Monto",
+		widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01"}),
+	)
+	reference = forms.CharField(
+		required=False,
+		max_length=80,
+		label="Referencia",
+		widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Nro. operación (opcional)"}),
+	)
+	notes = forms.CharField(
+		required=False,
+		max_length=255,
+		label="Observación",
+		widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Detalle opcional"}),
+	)
 
 
 class SaleDetailForm(forms.ModelForm):

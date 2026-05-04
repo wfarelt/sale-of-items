@@ -27,11 +27,13 @@ class CashBox(models.Model):
 	PAYMENT_METHOD_CASH = "cash"
 	PAYMENT_METHOD_QR = "qr"
 	PAYMENT_METHOD_TRANSFER = "transferencia"
+	PAYMENT_METHOD_CARD = "tarjeta"
 	PAYMENT_METHOD_NA = "no_aplica"
 	PAYMENT_METHOD_CHOICES = (
 		(PAYMENT_METHOD_CASH, "Efectivo"),
 		(PAYMENT_METHOD_QR, "QR"),
 		(PAYMENT_METHOD_TRANSFER, "Transferencia"),
+		(PAYMENT_METHOD_CARD, "Tarjeta"),
 		(PAYMENT_METHOD_NA, "No aplica"),
 	)
 
@@ -102,7 +104,21 @@ class CashBox(models.Model):
 			description=f"Ingreso por venta #{sale.pk} al cliente {sale.client.name}",
 			reference=cls.REFERENCE_SALE,
 			date=sale.date,
-			payment_method=sale.payment_type,
+			payment_method=sale.payment_type or cls.PAYMENT_METHOD_NA,
+		)
+
+	@classmethod
+	def register_sale_payment(cls, payment):
+		method_code = payment.method.code if payment.method else cls.PAYMENT_METHOD_NA
+		if method_code not in {m[0] for m in cls.PAYMENT_METHOD_CHOICES}:
+			method_code = cls.PAYMENT_METHOD_NA
+		return cls.create_entry(
+			entry_type=cls.TYPE_INCOME,
+			amount=payment.amount,
+			description=f"Ingreso por pago de venta #{payment.sale_id} al cliente {payment.sale.client.name}",
+			reference=cls.REFERENCE_SALE,
+			date=payment.paid_at,
+			payment_method=method_code,
 		)
 
 	@classmethod
@@ -113,6 +129,20 @@ class CashBox(models.Model):
 			description=f"Reversion de ingreso por eliminacion de venta #{sale.pk}",
 			reference=cls.REFERENCE_SALE,
 			payment_method=sale.payment_type,
+		)
+
+	@classmethod
+	def register_sale_payment_reversal(cls, payment):
+		method_code = payment.method.code if payment.method else cls.PAYMENT_METHOD_NA
+		if method_code not in {m[0] for m in cls.PAYMENT_METHOD_CHOICES}:
+			method_code = cls.PAYMENT_METHOD_NA
+		return cls.create_entry(
+			entry_type=cls.TYPE_EXPENSE,
+			amount=payment.amount,
+			description=f"Reversion de pago de venta #{payment.sale_id}",
+			reference=cls.REFERENCE_SALE,
+			date=timezone.now(),
+			payment_method=method_code,
 		)
 
 	@classmethod

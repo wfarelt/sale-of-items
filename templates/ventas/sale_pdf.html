@@ -120,10 +120,41 @@
     <div class="value">{{ sale.client.phone|default:"-" }}</div>
   </div>
   <div class="info-box">
-    <div class="label">Forma de pago</div>
-    <div class="value">{{ sale.get_payment_type_display }}</div>
+    <div class="label">Estado de pago</div>
+    <div class="value">
+      {% if sale.payment_status == 'paid' or sale.payment_status == 'pagado' %}
+        Pagado
+      {% elif sale.payment_status == 'partial' or sale.payment_status == 'parcial' %}
+        Parcial
+      {% elif sale.payment_status == 'pending' or sale.payment_status == 'pendiente' %}
+        Pendiente
+      {% else %}
+        {{ sale.payment_status|default:'-' }}
+      {% endif %}
+    </div>
   </div>
 </div>
+
+{% if show_prices %}
+<div class="info-grid" style="margin-top:-4px; margin-bottom: 12px;">
+  <div class="info-box">
+    <div class="label">Pagado</div>
+    <div class="value">Bs {{ sale.total_paid|floatformat:2 }}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Saldo pendiente</div>
+    <div class="value">Bs {{ sale.pending_balance|floatformat:2 }}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Condición comercial</div>
+    <div class="value">{{ sale.commercial_condition.name|default:"-" }}</div>
+  </div>
+  <div class="info-box">
+    <div class="label">Vencimiento</div>
+    <div class="value">{% if sale.due_date %}{{ sale.due_date|date:"d/m/Y" }}{% else %}-{% endif %}</div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Products -->
 <table>
