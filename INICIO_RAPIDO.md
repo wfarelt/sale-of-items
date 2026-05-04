@@ -14,7 +14,13 @@
 source venv/bin/activate
 ```
 
-### Paso 2: Iniciar servidor Django
+### Paso 2: Preparar base de datos y datos base
+```bash
+python manage.py migrate
+python bootstrap_project.py
+```
+
+### Paso 3: Iniciar servidor Django
 ```bash
 python manage.py runserver
 ```
@@ -24,7 +30,7 @@ O especificar puerto:
 python manage.py runserver 0.0.0.0:8000
 ```
 
-### Paso 3: Acceder a la aplicación
+### Paso 4: Acceder a la aplicación
 
 **Panel Admin:**
 - URL: [http://localhost:8000/admin/](http://localhost:8000/admin/)

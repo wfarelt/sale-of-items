@@ -74,14 +74,7 @@ python manage.py migrate
 
 ### 4. Crear datos iniciales (Roles y Usuarios de prueba)
 ```bash
-python manage.py shell < setup_initial_data.py
-```
-
-O accede al shell de Django interactivamente:
-```bash
-python manage.py shell
-# Luego ejecuta:
-exec(open('setup_initial_data.py').read())
+python bootstrap_project.py
 ```
 
 ### 5. Iniciar servidor de desarrollo
@@ -93,7 +86,7 @@ Accede a: http://localhost:8000/
 
 ## 🔑 Credenciales de Prueba
 
-Después de ejecutar `setup_initial_data.py`:
+Despues de ejecutar `bootstrap_project.py`:
 
 | Usuario | Contraseña | Rol | Acceso |
 |---------|-----------|-----|--------|
@@ -122,7 +115,7 @@ sale-of-items/
 │   └── base.html          # Plantilla base con Bootstrap
 ├── static/                # Archivos estáticos (CSS, JS, IMG)
 ├── media/                 # Archivos subidos (avatares, etc.)
-├── setup_initial_data.py  # Script para crear datos iniciales
+├── bootstrap_project.py   # Script para crear datos iniciales
 ├── manage.py              # Gestor de Django
 ├── requirements.txt       # Dependencias del proyecto
 └── db.sqlite3            # Base de datos SQLite3

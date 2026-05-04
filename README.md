@@ -49,7 +49,7 @@ pip install -r requirements.txt
 3. Inicializar datos base
 
 ```bash
-python run_setup.py
+python bootstrap_project.py
 ```
 
 4. Ejecutar servidor
@@ -71,25 +71,14 @@ Acceso:
 - Shell Django: `python manage.py shell`
 - Recolectar estaticos: `python manage.py collectstatic`
 
-## Datos de prueba con Faker
+## Configuracion de entorno
 
-Basico:
+Este proyecto requiere archivos de entorno para iniciar:
 
-```bash
-python seed_faker_data.py
-```
+- `.env.development`
+- `.env.production`
 
-Con empresa personalizada:
-
-```bash
-python seed_faker_data.py --company "Mi Empresa"
-```
-
-Ejemplo completo:
-
-```bash
-python seed_faker_data.py --company "Empresa Demo" --clients 100 --products 80 --purchases 40 --sales 60
-```
+Puedes copiar la base desde `.env.example` y ajustar valores segun tu entorno.
 
 ## Usuarios demo
 
