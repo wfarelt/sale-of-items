@@ -123,7 +123,7 @@
                                                         <th class="text-center" style="width:80px;">Cajas</th>
                                                         <th class="text-center" style="width:95px;">Cantidad</th>
                                                         <th class="text-center" style="width:100px;">Precio</th>
-                                                        <th class="text-center" style="width:100px;">Descuento</th>
+                                                        <th class="text-center" style="width:115px;">Desc. (%)</th>
                                                         <th class="text-end" style="width:100px;">Subtotal</th>
                                                         <th class="text-center" style="width:70px;">Acción</th>
                                                     </tr>
@@ -139,7 +139,7 @@
                                                             <td class="text-center"><span class="boxes-display">-</span><div class="d-none">{{ form_detail.cajas }}</div></td>
                                                             <td class="text-center"><span class="quantity-display">0.00</span><div class="d-none">{{ form_detail.quantity }}</div></td>
                                                             <td>{{ form_detail.price }}</td>
-                                                            <td>{{ form_detail.discount }}</td>
+                                                            <td><input type="number" class="form-control form-control-sm discount-percent-input" step="0.01" min="0" max="20" placeholder="0.00"><div class="d-none">{{ form_detail.discount }}</div></td>
                                                             <td class="text-end"><span class="subtotal-display">0.00</span></td>
                                                             <td class="text-center">
                                                                 {{ form_detail.DELETE }}
@@ -318,7 +318,7 @@
                                                         <th>Producto</th>
                                                         <th class="text-center">Cantidad</th>
                                                         <th class="text-end">Precio</th>
-                                                        <th class="text-end">Descuento</th>
+                                                        <th class="text-end">Descuento (Bs)</th>
                                                         <th class="text-end">Subtotal</th>
                                                     </tr>
                                                 </thead>
@@ -362,7 +362,7 @@
                             <td class="text-center align-middle"><span class="boxes-display">-</span><div class="d-none">{{ formset.empty_form.cajas }}</div></td>
                             <td class="text-center align-middle"><span class="quantity-display">0.00</span><div class="d-none">{{ formset.empty_form.quantity }}</div></td>
                             <td>{{ formset.empty_form.price }}</td>
-                            <td>{{ formset.empty_form.discount }}</td>
+                            <td><input type="number" class="form-control form-control-sm discount-percent-input" step="0.01" min="0" max="20" placeholder="0.00"><div class="d-none">{{ formset.empty_form.discount }}</div></td>
                             <td class="text-end align-middle"><span class="subtotal-display">0.00</span></td>
                             <td class="text-center">
                                 {{ formset.empty_form.DELETE }}
@@ -614,6 +614,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function buildConfirmation() {
+        updateTotals();
+
         // Client
         const selectedOption = clientSelect ? clientSelect.options[clientSelect.selectedIndex] : null;
         document.getElementById('confirm-client').textContent =
@@ -786,6 +788,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const quantityDisplay = row.querySelector('.quantity-display');
         const refInput       = row.querySelector('.ref-m2-input');
         const priceInput     = row.querySelector('input[name*="-price"]');
+            const discountPercentInput = row.querySelector('.discount-percent-input');
         const productDisplay = row.querySelector('.product-display');
         if (!productSelect) return;
 
@@ -795,6 +798,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (quantityInput) quantityInput.value = '';
             if (quantityDisplay) quantityDisplay.textContent = '0.00';
             if (refInput) refInput.value = '';
+            if (discountPercentInput) discountPercentInput.value = '';
             row.classList.add('row-hidden-empty');
             return;
         }
@@ -849,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const refM2          = parseFloat((refInput || {}).value) || 0;
             const price          = parseFloat((row.querySelector('input[name*="-price"]') || {}).value) || 0;
             const discountInput  = row.querySelector('input[name*="-discount"]');
-            const discount       = parseFloat((discountInput || {}).value) || 0;
+            const discountPercentInput = row.querySelector('.discount-percent-input');
             const boxesDisplay   = row.querySelector('.boxes-display');
             const meta           = productSelect ? productsMap.get(productSelect.value) : null;
             const m2PorCaja      = meta && meta.m2_por_caja ? parseFloat(meta.m2_por_caja) : 0;
@@ -873,8 +877,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (cajasInput) cajasInput.value = boxes > 0 ? boxes : '';
 
             const gross = qty * price;
-            const appliedDiscount = Math.min(discount, gross);
-            if (discountInput && appliedDiscount !== discount) discountInput.value = appliedDiscount.toFixed(2);
+            let discountPercent = parseFloat((discountPercentInput || {}).value);
+            if (Number.isNaN(discountPercent)) {
+                const discountAmount = parseFloat((discountInput || {}).value) || 0;
+                discountPercent = gross > 0 ? (discountAmount / gross) * 100 : 0;
+            }
+            discountPercent = Math.min(20, Math.max(0, discountPercent || 0));
+            if (discountPercentInput) discountPercentInput.value = discountPercent > 0 ? discountPercent.toFixed(2) : '';
+
+            const appliedDiscount = gross * (discountPercent / 100);
+            if (discountInput) discountInput.value = appliedDiscount.toFixed(2);
             const subtotal = Math.max(0, gross - appliedDiscount);
             const subtotalDisplay = row.querySelector('.subtotal-display');
             if (subtotalDisplay) subtotalDisplay.textContent = subtotal.toFixed(2);
@@ -975,14 +987,14 @@ document.addEventListener('DOMContentLoaded', function () {
             updateTotals();
             refreshValidation();
         }
-        if (e.target.matches('.ref-m2-input, input[name*="-price"], input[name*="-discount"]')) {
+        if (e.target.matches('.ref-m2-input, input[name*="-price"], .discount-percent-input')) {
             updateTotals();
             refreshValidation();
         }
     });
 
     document.addEventListener('input', function (e) {
-        if (e.target.matches('.ref-m2-input, input[name*="-price"], input[name*="-discount"]')) {
+        if (e.target.matches('.ref-m2-input, input[name*="-price"], .discount-percent-input')) {
             updateTotals();
             refreshValidation();
         }

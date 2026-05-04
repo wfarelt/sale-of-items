@@ -91,9 +91,9 @@
                     <th class="text-center">Cantidad</th>
                     <th class="text-center">Cajas</th>
                     {% if not user.is_almacen %}
-                        <th class="text-end">Precio</th>
-                        <th class="text-end">Descuento</th>
-                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">Precio (Bs)</th>
+                        <th class="text-end">Descuento (Bs)</th>
+                        <th class="text-end">Subtotal (Bs)</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -106,9 +106,9 @@
                     <td class="text-center">{{ detail.quantity|floatformat:2 }}</td>
                     <td class="text-center">{{ detail.cajas|default:"-" }}</td>
                     {% if not user.is_almacen %}
-                        <td class="text-end">Bs {{ detail.price|floatformat:2 }}</td>
-                        <td class="text-end">Bs {{ detail.discount|floatformat:2 }}</td>
-                        <td class="text-end fw-semibold">Bs {{ detail.subtotal|floatformat:2 }}</td>
+                        <td class="text-end">{{ detail.price|floatformat:2 }}</td>
+                        <td class="text-end">{{ detail.discount|floatformat:2 }}</td>
+                        <td class="text-end fw-semibold">{{ detail.subtotal|floatformat:2 }}</td>
                     {% endif %}
                 </tr>
                 {% empty %}
@@ -117,7 +117,8 @@
             </tbody>
             {% if not user.is_almacen %}
             <tfoot>
-                <tr class="table-light"><th colspan="7" class="text-end">Total</th><th class="text-end">Bs {{ sale.total|floatformat:2 }}</th></tr>
+                <tr class="table-light"><th colspan="7" class="text-end">Descuento total (Bs)</th><th class="text-end">-{{ total_discount|floatformat:2 }}</th></tr>
+                <tr class="table-light"><th colspan="7" class="text-end">Total (Bs)</th><th class="text-end">{{ sale.total|floatformat:2 }}</th></tr>
             </tfoot>
             {% endif %}
         </table>

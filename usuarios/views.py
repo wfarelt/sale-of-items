@@ -147,11 +147,11 @@ def dashboard_view(request):
 		)
 	elif user.is_admin:
 		now = timezone.localtime()
-		week_start_date = now.date() - timedelta(days=6)
-		sales_last_week_qs = (
+		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+		sales_month_qs = (
 			Sale.objects.filter(
 				status=Sale.STATUS_CONFIRMED,
-				date__date__gte=week_start_date,
+				date__date__gte=month_start.date(),
 			)
 			.annotate(day=TruncDate("date"))
 			.values("day")
@@ -159,16 +159,17 @@ def dashboard_view(request):
 		)
 		sales_by_day = {
 			entry["day"]: float(entry["total"] or 0)
-			for entry in sales_last_week_qs
+			for entry in sales_month_qs
 		}
-		weekly_labels = []
-		weekly_amounts = []
-		for offset in range(7):
-			day = week_start_date + timedelta(days=offset)
-			weekly_labels.append(day.strftime("%a %d/%m"))
-			weekly_amounts.append(round(sales_by_day.get(day, 0), 2))
+		spanish_days = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
+		monthly_labels = []
+		monthly_amounts = []
+		total_days = now.day
+		for offset in range(total_days):
+			day = month_start.date() + timedelta(days=offset)
+			monthly_labels.append(f"{spanish_days[day.weekday()]} {day.strftime('%d/%m')}")
+			monthly_amounts.append(round(sales_by_day.get(day, 0), 2))
 
-		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		context.update(
 			{
 				"clients_total": Client.objects.count(),
@@ -185,8 +186,8 @@ def dashboard_view(request):
 				"cash_entries_total": CashBox.objects.count(),
 				"cash_income_month": CashBox.objects.filter(type=CashBox.TYPE_INCOME, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"cash_expense_month": CashBox.objects.filter(type=CashBox.TYPE_EXPENSE, date__gte=month_start).aggregate(Sum("amount"))["amount__sum"] or 0,
-				"weekly_sales_labels": weekly_labels,
-				"weekly_sales_amounts": weekly_amounts,
+				"monthly_sales_labels": monthly_labels,
+				"monthly_sales_amounts": monthly_amounts,
 			}
 		)
 		context["cash_balance_month"] = context["cash_income_month"] - context["cash_expense_month"]

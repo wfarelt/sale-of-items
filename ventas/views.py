@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from decimal import Decimal
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -55,7 +56,9 @@ class SaleDetailView(SalesAccessMixin, DetailView):
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
-		context["details"] = self.object.saledetail_set.select_related("product")
+		details = list(self.object.saledetail_set.select_related("product"))
+		context["details"] = details
+		context["total_discount"] = sum((detail.discount or Decimal("0.00")) for detail in details)
 		return context
 
 
@@ -314,10 +317,12 @@ class SaleDeliveryView(SalesDeliveryAccessMixin, UpdateView):
 class SalePDFView(SalesAccessMixin, View):
 	def get(self, request, pk, *args, **kwargs):
 		sale = Sale.objects.select_related("client", "seller", "delivered_by").get(pk=pk)
-		details = sale.saledetail_set.select_related("product").all()
+		details = list(sale.saledetail_set.select_related("product").all())
+		total_discount = sum((detail.discount or Decimal("0.00")) for detail in details)
 		context = {
 			"sale": sale,
 			"details": details,
+			"total_discount": total_discount,
 			"company": Company.get_solo(),
 			"now": timezone.localtime(),
 			"show_prices": not request.user.is_almacen,

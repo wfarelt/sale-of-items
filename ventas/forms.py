@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
@@ -84,8 +86,10 @@ class BaseSaleDetailFormSet(BaseInlineFormSet):
 			if product.pk in products_qty:
 				raise ValidationError("No puedes repetir el mismo producto en una venta.")
 
-			if price is not None and discount is not None and discount > (quantity * price):
-				raise ValidationError(f"El descuento de {product.name} no puede ser mayor al subtotal bruto.")
+			if price is not None and discount is not None:
+				max_discount = (quantity * price) * Decimal("0.20")
+				if discount > max_discount:
+					raise ValidationError(f"El descuento de {product.name} no puede superar el 20% del subtotal bruto.")
 
 			products_qty[product.pk] = quantity
 
