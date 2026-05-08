@@ -1089,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateRowFromProduct(row);
         updateTotals();
         refreshValidation();
+        return row;
     }
 
     function setRowProduct(row, productId) {
@@ -1127,9 +1128,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return ps && !ps.value;
         });
         if (emptyRow) { setRowProduct(emptyRow, productKey); return; }
-        addRow();
-        const rows = visibleRows();
-        const newRow = rows[rows.length - 1];
+        const newRow = addRow();
         if (newRow) setRowProduct(newRow, productKey);
     }
 

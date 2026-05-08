@@ -50,10 +50,29 @@
 <div class="row g-3 mb-3">
     <div class="col-12">
         <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <h1 class="h4 mb-1">Dashboard</h1>
-                <p class="text-muted mb-0">{{ request.user.display_role_name }} · {{ request.user.get_full_name|default:request.user.username }}</p>
+            <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h1 class="h4 mb-1">Dashboard</h1>
+                    <p class="text-muted mb-0">{{ request.user.display_role_name }} · {{ request.user.get_full_name|default:request.user.username }}</p>
+                </div>
+                <div class="text-end">
+                    <div id="dashboard-date" class="fw-semibold text-dark" style="font-size:1rem;"></div>
+                    <div id="dashboard-time" class="text-muted" style="font-size:1.5rem; font-variant-numeric: tabular-nums;"></div>
+                </div>
             </div>
+            <script>
+                (function () {
+                    const dateEl = document.getElementById('dashboard-date');
+                    const timeEl = document.getElementById('dashboard-time');
+                    function tick() {
+                        const now = new Date();
+                        dateEl.textContent = new Intl.DateTimeFormat('es-BO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(now);
+                        timeEl.textContent = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now);
+                    }
+                    tick();
+                    setInterval(tick, 1000);
+                })();
+            </script>
         </div>
     </div>
 </div>

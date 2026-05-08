@@ -201,7 +201,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es-es'
 
-TIME_ZONE = 'America/Bogota'
+TIME_ZONE = 'America/La_Paz'
 
 USE_I18N = True
 
