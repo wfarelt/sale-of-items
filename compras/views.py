@@ -7,6 +7,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from empresas.models import Company
+
 from .forms import PurchaseDetailFormSet, PurchaseForm
 from .models import Purchase
 
@@ -80,6 +82,8 @@ class PurchaseCreateView(InventoryAccessMixin, CreateView):
 			kwargs["formset"] = PurchaseDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = PurchaseDetailFormSet(instance=self.object)
+		company = Company.get_solo()
+		kwargs["utility_margin_percent"] = company.utility_margin_percent if company else 35
 		return super().get_context_data(**kwargs)
 
 
@@ -136,6 +140,8 @@ class PurchaseUpdateView(InventoryAccessMixin, UpdateView):
 			kwargs["formset"] = PurchaseDetailFormSet(self.request.POST, instance=self.object)
 		else:
 			kwargs["formset"] = PurchaseDetailFormSet(instance=self.object)
+		company = Company.get_solo()
+		kwargs["utility_margin_percent"] = company.utility_margin_percent if company else 35
 		kwargs["purchase_locked"] = bool(self.object and not self.object.is_editable())
 		return super().get_context_data(**kwargs)
 

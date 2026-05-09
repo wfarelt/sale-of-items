@@ -173,6 +173,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # Reduce intermittent "database is locked" errors under concurrent requests.
+            'timeout': int(os.getenv('SQLITE_TIMEOUT_SECONDS', '30')),
+        },
     }
 }
 

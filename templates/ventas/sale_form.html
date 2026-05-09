@@ -272,9 +272,14 @@
                             <button type="button" id="btn-step2-prev" class="btn btn-outline-secondary">
                                 <i class="fas fa-chevron-left me-1"></i> Anterior
                             </button>
-                            <button type="button" id="btn-step2-next" class="btn btn-dark">
-                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="btn-step2-proforma" class="btn btn-outline-dark">
+                                    Solo proforma <i class="fas fa-file-invoice ms-1"></i>
+                                </button>
+                                <button type="button" id="btn-step2-next" class="btn btn-dark">
+                                    Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -332,6 +337,25 @@
                                             <label class="form-label" for="id_payment_type">Método de pago inicial</label>
                                             {{ form.payment_type }}
                                             <div class="text-danger small mt-1">{{ form.payment_type.errors|striptags }}</div>
+                                        </div>
+                                        <div class="alert alert-light border mt-3 mb-0">
+                                            <div class="d-flex justify-content-between small mb-1">
+                                                <span class="text-muted">Total venta</span>
+                                                <strong>Bs <span id="payment-summary-total">0.00</span></strong>
+                                            </div>
+                                            <div class="d-flex justify-content-between small mb-1">
+                                                <span class="text-muted">Descuento total</span>
+                                                <span>Bs <span id="payment-summary-discount">0.00</span></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between small mb-1">
+                                                <span class="text-muted">Pago inicial</span>
+                                                <span>Bs <span id="payment-summary-upfront">0.00</span></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between fw-semibold mb-1">
+                                                <span>Saldo pendiente</span>
+                                                <span>Bs <span id="payment-summary-pending">0.00</span></span>
+                                            </div>
+                                            <div id="payment-summary-hint" class="small text-primary">Total a cobrar: Bs 0.00</div>
                                         </div>
                                     </div>
                                 </div>
@@ -700,6 +724,41 @@ document.addEventListener('DOMContentLoaded', function () {
         goToStep(3);
     });
 
+    /* Step 2 → 5 (solo proforma) */
+    document.getElementById('btn-step2-proforma').addEventListener('click', function () {
+        const errorBox = document.getElementById('step2-error');
+        if (!clientSelect || !clientSelect.value) {
+            errorBox.textContent = 'Selecciona un cliente antes de continuar.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+        errorBox.classList.add('d-none');
+
+        if (statusSelect) statusSelect.value = 'proforma';
+
+        if (commercialConditionSelect) {
+            const options = Array.from(commercialConditionSelect.options || []);
+            const contadoOption = options.find(opt => (opt.textContent || '').toLowerCase().includes('contado'));
+            if (contadoOption && contadoOption.value) {
+                commercialConditionSelect.value = contadoOption.value;
+            } else if (!commercialConditionSelect.value) {
+                const firstValidOption = options.find(opt => opt.value);
+                if (firstValidOption) commercialConditionSelect.value = firstValidOption.value;
+            }
+        }
+
+        updateStepper();
+        buildConfirmation();
+
+        const saleForm = document.getElementById('sale-form');
+        if (saleForm && typeof saleForm.requestSubmit === 'function') {
+            saleForm.requestSubmit(submitButton || undefined);
+            return;
+        }
+
+        goToStep(5);
+    });
+
     /* Step 3 → 2 */
     document.getElementById('btn-step3-prev').addEventListener('click', function () {
         goToStep(2);
@@ -720,6 +779,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         errorBox.classList.add('d-none');
         if (isConfirmedStatus()) {
+            updatePaymentStepSummary();
             goToStep(4);
         } else {
             buildConfirmation();
@@ -765,11 +825,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* Step 5 → 4 (confirmada) or 3 (proforma/others) */
     document.getElementById('btn-step5-prev').addEventListener('click', function () {
-        goToStep(isConfirmedStatus() ? 4 : 3);
+        if (isConfirmedStatus()) {
+            updatePaymentStepSummary();
+            goToStep(4);
+            return;
+        }
+        goToStep(3);
     });
 
     // Update stepper when status changes
     if (statusSelect) statusSelect.addEventListener('change', updateStepper);
+
+    if (upfrontAmountInput) {
+        upfrontAmountInput.addEventListener('input', updatePaymentStepSummary);
+        upfrontAmountInput.addEventListener('change', updatePaymentStepSummary);
+    }
+    if (commercialConditionSelect) {
+        commercialConditionSelect.addEventListener('change', updatePaymentStepSummary);
+    }
 
     // Initialize stepper state on page load
     updateStepper();
@@ -834,6 +907,36 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('confirm-items').innerHTML = rows.join('');
         document.getElementById('confirm-discount').textContent = totalDiscount.toFixed(2);
         document.getElementById('confirm-total').textContent = total.toFixed(2);
+    }
+
+    function updatePaymentStepSummary() {
+        updateTotals();
+
+        const total = parseFloat(document.getElementById('total-sale')?.textContent || '0') || 0;
+        const discount = parseFloat(document.getElementById('discount-sale')?.textContent || '0') || 0;
+        const upfront = parseFloat(upfrontAmountInput?.value || '0') || 0;
+        const pending = Math.max(0, total - upfront);
+
+        const totalEl = document.getElementById('payment-summary-total');
+        const discountEl = document.getElementById('payment-summary-discount');
+        const upfrontEl = document.getElementById('payment-summary-upfront');
+        const pendingEl = document.getElementById('payment-summary-pending');
+        const hintEl = document.getElementById('payment-summary-hint');
+
+        if (totalEl) totalEl.textContent = total.toFixed(2);
+        if (discountEl) discountEl.textContent = discount.toFixed(2);
+        if (upfrontEl) upfrontEl.textContent = upfront.toFixed(2);
+        if (pendingEl) pendingEl.textContent = pending.toFixed(2);
+
+        if (hintEl) {
+            const conditionText = commercialConditionSelect
+                ? (commercialConditionSelect.options[commercialConditionSelect.selectedIndex]?.textContent?.toLowerCase() || '')
+                : '';
+            const isCashCondition = conditionText.includes('contado') || conditionText.includes('(0') || conditionText.includes('0 día') || conditionText.includes('0 dias');
+            hintEl.textContent = isCashCondition
+                ? `Total a cobrar hoy: Bs ${total.toFixed(2)}`
+                : `Monto sugerido a cobrar hoy: Bs ${upfront.toFixed(2)} (saldo: Bs ${pending.toFixed(2)})`;
+        }
     }
 
     /* ================================================================
@@ -1159,6 +1262,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.matches('.ref-m2-input, input[name*="-price"], .discount-percent-input')) {
             updateTotals();
             refreshValidation();
+            updatePaymentStepSummary();
         }
     });
 
@@ -1166,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.matches('.ref-m2-input, input[name*="-price"], .discount-percent-input')) {
             updateTotals();
             refreshValidation();
+            updatePaymentStepSummary();
         }
     });
 
@@ -1412,6 +1517,7 @@ document.addEventListener('DOMContentLoaded', function () {
     hideDeleteInputs();
     updateTotals();
     refreshValidation();
+    updatePaymentStepSummary();
 
     // If backend returned validation errors, reopen the relevant step.
     if (serverErrorFlags) {

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load sale_extras %}
 
 {% block title %}Cuentas por cobrar — Antigüedad{% endblock %}
 
@@ -86,19 +87,7 @@
                     <td class="text-muted small">{{ sale.pk }}</td>
                     <td class="fw-semibold">{{ sale.client.name }}</td>
                     <td>
-                        {% if sale.status == 'confirmada' or sale.status == 'confirmed' %}
-                            <span class="badge bg-success">Confirmada</span>
-                        {% elif sale.status == 'reserved' %}
-                            <span class="badge bg-info text-dark">Reservada</span>
-                        {% elif sale.status == 'ordered' %}
-                            <span class="badge bg-primary">Pedido</span>
-                        {% elif sale.status == 'delivered' %}
-                            <span class="badge bg-secondary">Entregada</span>
-                        {% elif sale.status == 'proforma' or sale.status == 'draft' %}
-                            <span class="badge bg-light text-dark border">Proforma</span>
-                        {% else %}
-                            <span class="badge bg-light text-dark border">{{ sale.status }}</span>
-                        {% endif %}
+                        <span class="badge {{ sale.status|sale_status_badge_class }}">{{ sale.status|sale_status_es }}</span>
                     </td>
                     <td class="text-center">
                         {% if sale.due_date %}

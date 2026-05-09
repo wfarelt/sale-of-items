@@ -51,11 +51,16 @@ class Purchase(models.Model):
 	def apply_inventory_update(self):
 		"""Aplica incremento de stock y actualiza precio de venta en productos."""
 		from movimientos.models import InventoryMovement
+		from empresas.models import Company
+
+		company = Company.get_solo()
+		margin_percent = company.utility_margin_percent if company else Decimal("35.00")
+		margin_factor = Decimal("1.00") + (margin_percent / Decimal("100.00"))
 
 		movement_details = []
 		for detail in self.purchasedetail_set.select_related("product"):
 			product = detail.product
-			sale_price = detail.sale_price if detail.sale_price is not None else detail.cost_price * 1.35
+			sale_price = detail.sale_price if detail.sale_price is not None else detail.cost_price * margin_factor
 			product.stock += detail.quantity
 			product.price = sale_price
 			product.save(update_fields=["stock", "price"])

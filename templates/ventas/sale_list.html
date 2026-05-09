@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load sale_extras %}
 
 {% block title %}Ventas{% endblock %}
 
@@ -56,13 +57,7 @@
                     <td><small>{% if sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</small></td>
                     <td><small class="text-muted">{{ sale.date|date:'d/m/Y H:i' }}</small></td>
                     <td>
-                        {% if sale.status == 'confirmada' %}
-                            <span class="badge text-bg-success">Confirmada</span>
-                        {% elif sale.status == 'anulada' %}
-                            <span class="badge text-bg-danger">Anulada</span>
-                        {% else %}
-                            <span class="badge text-bg-warning text-dark">Proforma</span>
-                        {% endif %}
+                        <span class="badge {{ sale.status|sale_status_badge_class }}">{{ sale.status|sale_status_es }}</span>
                     </td>
                     <td>
                         {% if sale.delivered_at %}
@@ -75,13 +70,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if sale.payment_status == 'PAID' %}
-                            <span class="badge text-bg-success">{{ sale.payment_status }}</span>
-                        {% elif sale.payment_status == 'PARTIAL' %}
-                            <span class="badge text-bg-warning text-dark">{{ sale.payment_status }}</span>
-                        {% else %}
-                            <span class="badge text-bg-secondary">{{ sale.payment_status }}</span>
-                        {% endif %}
+                        <span class="badge {{ sale.payment_status|payment_status_badge_class }}">{{ sale.payment_status|payment_status_es }}</span>
                     </td>
                     {% if not user.is_almacen %}
                         <td class="text-end fw-semibold">Bs {{ sale.total|floatformat:2 }}</td>

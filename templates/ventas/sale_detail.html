@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load sale_extras %}
 
 {% block title %}Venta #{{ sale.id }}{% endblock %}
 
@@ -79,25 +80,11 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Estado</small>
-            {% if sale.status == 'confirmada' %}
-                <span class="badge text-bg-success">Confirmada</span>
-            {% elif sale.status == 'anulada' or sale.status == 'cancelled' %}
-                <span class="badge text-bg-danger">Cancelada/Anulada</span>
-            {% elif sale.status == 'reserved' %}
-                <span class="badge text-bg-info text-dark">Reservada</span>
-            {% elif sale.status == 'ordered' %}
-                <span class="badge text-bg-secondary">Pedido</span>
-            {% elif sale.status == 'confirmed' %}
-                <span class="badge text-bg-primary">Confirmada (nuevo)</span>
-            {% elif sale.status == 'delivered' %}
-                <span class="badge text-bg-success">Entregada</span>
-            {% else %}
-                <span class="badge text-bg-warning text-dark">Proforma / Borrador</span>
-            {% endif %}
+            <span class="badge {{ sale.status|sale_status_badge_class }}">{{ sale.status|sale_status_es }}</span>
         </div></div>
     </div>
     <div class="col-12 col-md-3">
-        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Estado de pago</small><div class="fw-semibold">{{ sale.payment_status }}</div></div></div>
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Estado de pago</small><div class="fw-semibold">{{ sale.payment_status|payment_status_es }}</div></div></div>
     </div>
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Pagado</small><div class="fw-semibold">Bs {{ sale.total_paid|floatformat:2 }}</div></div></div>

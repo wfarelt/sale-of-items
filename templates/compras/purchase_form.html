@@ -9,7 +9,7 @@
             <div class="card-body p-4">
                 <h1 class="h4 mb-4">{% if object %}Editar compra #{{ object.id }}{% else %}Registrar nueva compra{% endif %}</h1>
 
-                <form method="post" novalidate>
+                <form id="purchase-form" method="post" novalidate data-utility-margin="{{ utility_margin_percent|default:35 }}">
                     {% csrf_token %}
 
                     <!-- Información principal de la compra -->
@@ -171,11 +171,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const purchaseForm = document.getElementById('purchase-form');
     const tbody = document.querySelector('.formset-tbody');
     const totalFormsInput = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS');
     const addRowButton = document.getElementById('btn-add-row');
     const emptyTemplate = document.getElementById('empty-form-template');
     const submitButton = document.getElementById('btn-submit-purchase');
+    const marginPercent = parseFloat((purchaseForm && purchaseForm.dataset.utilityMargin) || '35');
 
     const duplicateAlert = document.createElement('div');
     duplicateAlert.className = 'alert alert-danger mt-2 d-none';
@@ -199,7 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function calculateSalePrice(costPrice) {
-        return (costPrice * 1.35).toFixed(2);
+        const safeMargin = isNaN(marginPercent) ? 35 : marginPercent;
+        const factor = 1 + (safeMargin / 100);
+        return (costPrice * factor).toFixed(2);
     }
 
     function updateSalePriceFromCost(row) {
@@ -341,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
         maybeAddNextRow(e.target);
     });
 
-    document.querySelector('form').addEventListener('submit', function(e) {
+    purchaseForm.addEventListener('submit', function(e) {
         if (!validateDuplicateProducts()) {
             e.preventDefault();
         }

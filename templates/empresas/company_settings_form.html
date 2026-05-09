@@ -62,6 +62,16 @@
                             {{ form.timezone }}
                             <div class="text-danger small mt-1">{{ form.timezone.errors|striptags }}</div>
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.proforma_validity_days.id_for_label }}">Dias validez proforma</label>
+                            {{ form.proforma_validity_days }}
+                            <div class="text-danger small mt-1">{{ form.proforma_validity_days.errors|striptags }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.utility_margin_percent.id_for_label }}">Margen utilidad (%)</label>
+                            {{ form.utility_margin_percent }}
+                            <div class="text-danger small mt-1">{{ form.utility_margin_percent.errors|striptags }}</div>
+                        </div>
                         <div class="col-md-8">
                             <label class="form-label" for="{{ form.logo.id_for_label }}">Logo</label>
                             {% if object.logo %}

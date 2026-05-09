@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load sale_extras %}
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -18,7 +19,7 @@
 
   /* ── Header ─────────────────────────────────────── */
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #bbb; padding-bottom: 10px; margin-bottom: 14px; }
-  .header-logo img { max-height: 60px; max-width: 140px; }
+  .header-logo img { max-height: 80px; max-width: 200px; }
   .header-logo .company-name { font-size: 14pt; font-weight: bold; }
   .header-doc { text-align: right; }
   .header-doc .doc-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; }
@@ -88,7 +89,6 @@
       <div class="company-name">{{ company.name }}</div>
     {% endif %}
     <div class="company-detail">
-      {% if company.ruc_nit %}NIT/RUC: {{ company.ruc_nit }}<br>{% endif %}
       {% if company.address %}{{ company.address }}{% if company.city %}, {{ company.city }}{% endif %}<br>{% endif %}
       {% if company.phone %}Tel: {{ company.phone }}{% endif %}
       {% if company.email %} · {{ company.email }}{% endif %}
@@ -96,12 +96,15 @@
   </div>
   <div class="header-doc">
     <div class="doc-title">
-      {% if sale.status == 'confirmada' %}Comprobante de Venta
-      {% elif sale.status == 'anulada' %}Comprobante Anulado
-      {% else %}Proforma{% endif %}
+      {% if sale.status == 'confirmada' or sale.status == 'confirmed' %}Comprobante de Venta
+      {% elif sale.status == 'anulada' or sale.status == 'canceled' or sale.status == 'cancelled' %}Comprobante Anulado
+      {% else %}{{ sale.status|sale_status_es }}{% endif %}
     </div>
     <div class="doc-number">#{{ sale.id }}</div>
     <div class="company-detail">{{ sale.date|date:"d/m/Y H:i" }}</div>
+    {% if sale.status == 'proforma' or sale.status == 'draft' %}
+      <div class="company-detail">Valida hasta: {{ sale.due_date|date:"d/m/Y" }}</div>
+    {% endif %}
   </div>
 </div>
 
@@ -119,42 +122,7 @@
     <div class="label">Telefono</div>
     <div class="value">{{ sale.client.phone|default:"-" }}</div>
   </div>
-  <div class="info-box">
-    <div class="label">Estado de pago</div>
-    <div class="value">
-      {% if sale.payment_status == 'paid' or sale.payment_status == 'pagado' %}
-        Pagado
-      {% elif sale.payment_status == 'partial' or sale.payment_status == 'parcial' %}
-        Parcial
-      {% elif sale.payment_status == 'pending' or sale.payment_status == 'pendiente' %}
-        Pendiente
-      {% else %}
-        {{ sale.payment_status|default:'-' }}
-      {% endif %}
-    </div>
-  </div>
 </div>
-
-{% if show_prices %}
-<div class="info-grid" style="margin-top:-4px; margin-bottom: 12px;">
-  <div class="info-box">
-    <div class="label">Pagado</div>
-    <div class="value">Bs {{ sale.total_paid|floatformat:2 }}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Saldo pendiente</div>
-    <div class="value">Bs {{ sale.pending_balance|floatformat:2 }}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Condición comercial</div>
-    <div class="value">{{ sale.commercial_condition.name|default:"-" }}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Vencimiento</div>
-    <div class="value">{% if sale.due_date %}{{ sale.due_date|date:"d/m/Y" }}{% else %}-{% endif %}</div>
-  </div>
-</div>
-{% endif %}
 
 <!-- Products -->
 <table>
@@ -212,7 +180,7 @@
   {% endif %}
 </table>
 
-{% if sale.status == 'anulada' %}
+{% if sale.status == 'anulada' or sale.status == 'canceled' or sale.status == 'cancelled' %}
 <p style="font-size:9pt;color:#7a1c1c;border:1px solid #c0706a;padding:6px 10px;border-radius:3px;">
   <strong>Venta anulada</strong> por {{ sale.canceled_by.get_full_name|default:sale.canceled_by.username }}
   el {{ sale.canceled_at|date:"d/m/Y H:i" }}.
@@ -232,17 +200,19 @@
 </div>
 
 {% if sale.delivered_at %}
+
+<h4>DATOS DE ENTREGA</h4> 
 <div class="info-grid" style="margin-top: 8px;">
   <div class="info-box">
     <div class="label">Fecha</div>
     <div class="value">{{ sale.delivered_at|date:"d/m/Y H:i" }}</div>
   </div>
   <div class="info-box">
-    <div class="label">Entrega</div>
+    <div class="label">Entregado por</div>
     <div class="value">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% else %}-{% endif %}</div>
   </div>
   <div class="info-box">
-    <div class="label">Recibe</div>
+    <div class="label">Recibido por</div>
     <div class="value">{{ sale.received_by_name|default:"-" }}</div>
   </div>
   <div class="info-box">

@@ -22,6 +22,7 @@ class SessionInactivityMiddleware:
 	def __call__(self, request):
 		if request.user.is_authenticated:
 			timeout_seconds = max(0, int(getattr(settings, "SESSION_INACTIVITY_TIMEOUT", 0)))
+			update_interval = max(1, int(getattr(settings, "SESSION_ACTIVITY_UPDATE_INTERVAL", 60)))
 			current_ts = int(time.time())
 			last_activity = request.session.get(self.SESSION_ACTIVITY_KEY)
 
@@ -40,6 +41,8 @@ class SessionInactivityMiddleware:
 				query = urlencode({"next": next_path})
 				return HttpResponseRedirect(f"{login_url}?{query}")
 
-			request.session[self.SESSION_ACTIVITY_KEY] = current_ts
+			# Avoid writing the session on every single request to reduce DB lock contention.
+			if not last_activity or (current_ts - int(last_activity)) >= update_interval:
+				request.session[self.SESSION_ACTIVITY_KEY] = current_ts
 
 		return self.get_response(request)

@@ -167,10 +167,17 @@ class Sale(models.Model):
 		return total
 
 	def calculate_due_date(self, *, save=True):
-		if self.commercial_condition:
-			self.due_date = (self.date or timezone.now()).date() + timedelta(days=self.commercial_condition.days_due)
+		base_date = (self.date or timezone.now()).date()
+		if self.status in {self.STATUS_PROFORMA, self.STATUS_DRAFT}:
+			from empresas.models import Company
+
+			company = Company.get_solo()
+			validity_days = company.proforma_validity_days if company else 7
+			self.due_date = base_date + timedelta(days=validity_days)
+		elif self.commercial_condition:
+			self.due_date = base_date + timedelta(days=self.commercial_condition.days_due)
 		else:
-			self.due_date = (self.date or timezone.now()).date()
+			self.due_date = base_date
 		if save and self.pk:
 			self.save(update_fields=["due_date", "updated_at"])
 		return self.due_date

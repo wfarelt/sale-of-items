@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -11,6 +14,14 @@ class Company(models.Model):
 	phone = models.CharField(max_length=20, blank=True, verbose_name='Teléfono')
 	currency = models.CharField(max_length=10, default='BOB', verbose_name='Moneda')
 	timezone = models.CharField(max_length=50, default='America/La_Paz', verbose_name='Zona horaria')
+	proforma_validity_days = models.PositiveIntegerField(default=7, verbose_name='Dias de validez de proforma')
+	utility_margin_percent = models.DecimalField(
+		max_digits=5,
+		decimal_places=2,
+		default=Decimal('35.00'),
+		validators=[MinValueValidator(Decimal('0.00'))],
+		verbose_name='Margen de utilidad (%)',
+	)
 	logo = models.ImageField(upload_to='empresas/', blank=True, null=True, verbose_name='Logo')
 	is_active = models.BooleanField(default=True, verbose_name='Activo')
 	created_at = models.DateTimeField(auto_now_add=True)

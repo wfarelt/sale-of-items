@@ -16,6 +16,8 @@ class CompanySettingsForm(forms.ModelForm):
 			"country",
 			"currency",
 			"timezone",
+			"proforma_validity_days",
+			"utility_margin_percent",
 			"logo",
 		]
 		widgets = {
@@ -28,5 +30,7 @@ class CompanySettingsForm(forms.ModelForm):
 			"country": forms.TextInput(attrs={"class": "form-control"}),
 			"currency": forms.TextInput(attrs={"class": "form-control", "maxlength": "10"}),
 			"timezone": forms.TextInput(attrs={"class": "form-control"}),
+			"proforma_validity_days": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
+			"utility_margin_percent": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
 			"logo": forms.ClearableFileInput(attrs={"class": "form-control"}),
 		}
