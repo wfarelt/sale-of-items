@@ -358,6 +358,8 @@ class SaleDetail(models.Model):
 		return f"{self.product.name} x {self.quantity}"
 
 	def subtotal(self):
-		gross = self.quantity * self.price
+		quantity = self.quantity or Decimal("0.00")
+		price = self.price or Decimal("0.00")
+		gross = quantity * price
 		net = gross - (self.discount or Decimal("0.00"))
 		return net if net > 0 else Decimal("0.00")

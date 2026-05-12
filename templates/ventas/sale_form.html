@@ -430,6 +430,7 @@
                                                 </tfoot>
                                             </table>
                                         </div>
+                                        <div id="confirm-stock-warning" class="alert alert-warning d-none mt-3 mb-0"></div>
                                     </div>
                                 </div>
                             </div>
@@ -698,11 +699,6 @@ document.addEventListener('DOMContentLoaded', function () {
             errorBox.classList.remove('d-none');
             return;
         }
-        if (!validateStock()) {
-            errorBox.textContent = 'Una o más cantidades superan el stock disponible.';
-            errorBox.classList.remove('d-none');
-            return;
-        }
         errorBox.classList.add('d-none');
         goToStep(2);
     });
@@ -878,6 +874,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let rows = [];
         let totalDiscount = 0;
         let total = 0;
+        let shortageItems = [];
         let idx = 1;
         visibleRows().forEach(row => {
             const productSelect = row.querySelector('select[name*="-product"]');
@@ -891,12 +888,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const price    = parseFloat(priceInput?.value || '0');
             const discount = parseFloat(discountInput?.value || '0');
             const subtotal = Math.max(0, qty * price - discount);
+            const availableStock = parseFloat(meta?.available_stock || '0');
+            const hasShortage = qty > availableStock;
+            const shortageQty = hasShortage ? (qty - availableStock) : 0;
             totalDiscount += discount;
             total += subtotal;
+            if (hasShortage) {
+                shortageItems.push(`${name}: faltan ${shortageQty.toFixed(2)} (disp ${availableStock.toFixed(2)})`);
+            }
             rows.push(`
                 <tr>
                     <td class="text-muted small">${idx++}</td>
-                    <td>${name}</td>
+                    <td>
+                        ${name}
+                        ${hasShortage ? '<div class="small mt-1"><span class="badge text-bg-warning">Faltante de stock</span></div>' : ''}
+                    </td>
                     <td class="text-center">${qty.toFixed(2)}</td>
                     <td class="text-end">Bs ${price.toFixed(2)}</td>
                     <td class="text-end">Bs ${discount.toFixed(2)}</td>
@@ -907,6 +913,20 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('confirm-items').innerHTML = rows.join('');
         document.getElementById('confirm-discount').textContent = totalDiscount.toFixed(2);
         document.getElementById('confirm-total').textContent = total.toFixed(2);
+
+        const confirmStockWarning = document.getElementById('confirm-stock-warning');
+        if (confirmStockWarning) {
+            if (shortageItems.length > 0) {
+                confirmStockWarning.classList.remove('d-none');
+                confirmStockWarning.innerHTML = `
+                    <strong>Atención:</strong> hay faltantes de stock en esta proforma.<br>
+                    <small>${shortageItems.join(' · ')}</small>
+                `;
+            } else {
+                confirmStockWarning.classList.add('d-none');
+                confirmStockWarning.textContent = '';
+            }
+        }
     }
 
     function updatePaymentStepSummary() {
@@ -1025,8 +1045,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <span class="fw-bold">Bs ${parseFloat(product.price).toFixed(2)}</span>
                                 <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Disp: ${product.available_stock}</span>
                             </div>
-                            <button type="button" class="btn btn-sm ${outOfStock ? 'btn-secondary' : 'btn-dark'} w-100 btn-add-product" data-product-id="${product.id}" ${outOfStock ? 'disabled' : ''}>
-                                <i class="fas fa-cart-plus me-1"></i> ${outOfStock ? 'Sin stock' : 'Agregar'}
+                            <button type="button" class="btn btn-sm ${outOfStock ? 'btn-outline-secondary' : 'btn-dark'} w-100 btn-add-product" data-product-id="${product.id}">
+                                <i class="fas fa-cart-plus me-1"></i> ${outOfStock ? 'Agregar (sin stock)' : 'Agregar'}
                             </button>
                         </div>
                     </div>
