@@ -631,9 +631,17 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentStep = 1;
     const serverErrorFlags = document.getElementById('server-error-flags');
     const step1Error = document.getElementById('step1-error');
+    const step4Error = document.getElementById('step4-error');
     const statusSelect = document.getElementById('id_status');
     const commercialConditionSelect = document.getElementById('id_commercial_condition');
     const upfrontAmountInput = document.getElementById('id_upfront_amount');
+    const step2ProformaButton = document.getElementById('btn-step2-proforma');
+    let isSubmittingSale = false;
+
+    function setSubmitButtonsState(disabled) {
+        if (submitButton) submitButton.disabled = disabled;
+        if (step2ProformaButton) step2ProformaButton.disabled = disabled;
+    }
 
     function isConfirmedStatus() {
         return statusSelect && statusSelect.value === 'confirmada';
@@ -655,7 +663,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (confirmNum) confirmNum.textContent = confirmed ? '5' : '4';
         if (btn3Next)   btn3Next.innerHTML = confirmed
             ? 'Siguiente <i class="fas fa-chevron-right ms-1"></i>'
-            : 'Finalizar <i class="fas fa-check ms-1"></i>';
+            : 'Siguiente <i class="fas fa-chevron-right ms-1"></i>';
+        updateSubmitButtonLabel();
+    }
+
+    function updateSubmitButtonLabel() {
+        if (!submitButton || !statusSelect) return;
+        if (statusSelect.value === 'proforma') {
+            submitButton.innerHTML = '<i class="fas fa-save me-1"></i> Guardar proforma';
+            return;
+        }
+        submitButton.innerHTML = '<i class="fas fa-check me-1"></i> Confirmar venta';
     }
 
     function goToStep(step) {
@@ -722,6 +740,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* Step 2 → 5 (solo proforma) */
     document.getElementById('btn-step2-proforma').addEventListener('click', function () {
+        if (isSubmittingSale) return;
         const errorBox = document.getElementById('step2-error');
         if (!clientSelect || !clientSelect.value) {
             errorBox.textContent = 'Selecciona un cliente antes de continuar.';
@@ -1469,6 +1488,14 @@ document.addEventListener('DOMContentLoaded', function () {
        FORM SUBMIT GUARD
     ================================================================ */
     document.getElementById('sale-form').addEventListener('submit', function (e) {
+        if (isSubmittingSale) {
+            e.preventDefault();
+            return;
+        }
+
+        isSubmittingSale = true;
+        setSubmitButtonsState(true);
+
         // Sync all calculated values (quantity, ref_m2, cajas) to hidden inputs before submit
         updateTotals();
 
@@ -1491,6 +1518,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!canSubmit) {
             e.preventDefault();
+            isSubmittingSale = false;
+            setSubmitButtonsState(false);
             let message = '';
             if (!okDup) {
                 message = 'No se puede guardar: hay productos repetidos en el detalle.';

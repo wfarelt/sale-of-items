@@ -141,6 +141,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'config.logging_trace.RequestTraceMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'usuarios.middleware.SessionInactivityMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -262,7 +263,11 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{asctime} [{levelname}] {name} | {message}',
+            'format': (
+                '{asctime} [{levelname}] {name} '
+                '| req_id={request_id} user={username} ip={ip} {method} {path} '
+                '| {message}'
+            ),
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
@@ -279,6 +284,9 @@ LOGGING = {
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
         },
+        'request_context': {
+            '()': 'config.logging_trace.RequestContextFilter',
+        },
     },
     'handlers': {
         # Consola — solo en desarrollo
@@ -294,6 +302,7 @@ LOGGING = {
             'maxBytes': 5 * 1024 * 1024,   # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
+            'filters': ['request_context'],
             'encoding': 'utf-8',
         },
         # Eventos operativos de la app (ventas, compras, caja, etc.)
@@ -303,6 +312,7 @@ LOGGING = {
             'maxBytes': 10 * 1024 * 1024,  # 10 MB
             'backupCount': 10,
             'formatter': 'verbose',
+            'filters': ['request_context'],
             'encoding': 'utf-8',
         },
         # Eventos de seguridad (login, logout, fallos, bloqueos, sesión expirada)
@@ -312,6 +322,7 @@ LOGGING = {
             'maxBytes': 10 * 1024 * 1024,  # 10 MB
             'backupCount': 10,
             'formatter': 'verbose',
+            'filters': ['request_context'],
             'encoding': 'utf-8',
         },
     },

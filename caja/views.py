@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -136,6 +136,21 @@ class CashBoxCreateView(CashBoxAccessMixin, CreateView):
 		return f'{reverse_lazy("caja:list")}?date={entry_date.isoformat()}'
 
 	def form_valid(self, form):
+		recent_threshold = timezone.now() - timedelta(seconds=20)
+		existing_entry = CashBox.objects.filter(
+			date=form.cleaned_data["date"],
+			type=form.cleaned_data["type"],
+			amount=form.cleaned_data["amount"],
+			payment_method=form.cleaned_data["payment_method"],
+			reference=form.cleaned_data["reference"],
+			description=form.cleaned_data["description"],
+			created_at__gte=recent_threshold,
+		).exists()
+		if existing_entry:
+			entry_date = CashBox.resolve_business_date(form.cleaned_data["date"])
+			messages.info(self.request, "El movimiento de caja ya fue registrado. Se evitó un doble envío.")
+			return HttpResponseRedirect(f'{reverse_lazy("caja:list")}?date={entry_date.isoformat()}')
+
 		messages.success(self.request, "Movimiento de caja registrado exitosamente.")
 		return super().form_valid(form)
 

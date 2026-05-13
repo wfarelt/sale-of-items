@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import OperationalError, transaction
 from decimal import Decimal
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
@@ -13,6 +13,10 @@ from empresas.models import Company
 from productos.models import Product
 from .forms import SaleDeliveryForm, SaleDetailFormSet, SaleForm, SalePaymentForm
 from .models import Sale
+
+
+def _is_sqlite_locked_error(exc):
+	return "database is locked" in str(exc).lower()
 
 
 class SalesAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -38,6 +42,11 @@ class SaleListView(SalesAccessMixin, ListView):
 
 	def get_queryset(self):
 		queryset = super().get_queryset().select_related("client").prefetch_related("payments")
+		if self.request.user.is_almacen:
+			queryset = queryset.filter(
+				delivered_at__isnull=True,
+				status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+			)
 		search = self.request.GET.get("q")
 		if search:
 			queryset = queryset.filter(client__name__icontains=search)
@@ -78,63 +87,71 @@ class SaleCreateView(SalesWriteAccessMixin, CreateView):
 		formset = SaleDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
-			new_status = form.cleaned_data.get("status")
-			upfront_amount = form.cleaned_data.get("upfront_amount")
-			if new_status == Sale.STATUS_CONFIRMED:
-				from caja.models import CashBox
-				try:
-					CashBox.validate_day_open(timezone.now())
-				except ValidationError as exc:
-					messages.error(request, str(exc))
-					form.add_error(None, str(exc))
-					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+			try:
+				new_status = form.cleaned_data.get("status")
+				upfront_amount = form.cleaned_data.get("upfront_amount")
+				if new_status == Sale.STATUS_CONFIRMED:
+					from caja.models import CashBox
+					try:
+						CashBox.validate_day_open(timezone.now())
+					except ValidationError as exc:
+						messages.error(request, str(exc))
+						form.add_error(None, str(exc))
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
-			self.object = form.save(commit=False)
-			self.object.seller = request.user
-			self.object.save()
-			formset.instance = self.object
-			formset.save()
-			self.object.calculate_total()
-			self.object.calculate_due_date()
+				self.object = form.save(commit=False)
+				self.object.seller = request.user
+				self.object.save()
+				formset.instance = self.object
+				formset.save()
+				self.object.calculate_total()
+				self.object.calculate_due_date()
 
-			if upfront_amount is not None and upfront_amount > self.object.total:
-				form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
-				self.object.delete()
-				return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-
-			if self.object.status == self.object.STATUS_CONFIRMED:
-				from caja.models import CashBox
-				try:
-					CashBox.validate_day_open(self.object.date)
-					self.object.apply_inventory_output()
-					if upfront_amount is not None and upfront_amount > Decimal("0.00"):
-						payment = self.object.register_payment(
-							method_code=form.cleaned_data["payment_type"],
-							amount=upfront_amount,
-							recorded_by=request.user,
-							paid_at=self.object.date,
-							notes="Pago inicial registrado en creación de venta",
-						)
-						CashBox.register_sale_payment(payment)
-				except ValidationError as exc:
-					messages.error(request, str(exc))
-					form.add_error(None, str(exc))
+				if upfront_amount is not None and upfront_amount > self.object.total:
+					form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
 					self.object.delete()
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-				messages.success(request, "Venta registrada exitosamente.")
-			elif self.object.status == self.object.STATUS_RESERVED:
-				try:
-					self.object.reserve_inventory()
-				except Exception as exc:
-					messages.error(request, str(exc))
-					form.add_error(None, str(exc))
-					self.object.delete()
-					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-				messages.success(request, "Venta guardada como RESERVADA. Stock reservado actualizado.")
-			else:
-				messages.success(request, "Proforma guardada exitosamente.")
 
-			return redirect(self.success_url)
+				if self.object.status == self.object.STATUS_CONFIRMED:
+					from caja.models import CashBox
+					try:
+						CashBox.validate_day_open(self.object.date)
+						self.object.apply_inventory_output()
+						if upfront_amount is not None and upfront_amount > Decimal("0.00"):
+							payment = self.object.register_payment(
+								method_code=form.cleaned_data["payment_type"],
+								amount=upfront_amount,
+								recorded_by=request.user,
+								paid_at=self.object.date,
+								notes="Pago inicial registrado en creación de venta",
+							)
+							CashBox.register_sale_payment(payment)
+					except ValidationError as exc:
+						messages.error(request, str(exc))
+						form.add_error(None, str(exc))
+						self.object.delete()
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+					messages.success(request, "Venta registrada exitosamente.")
+				elif self.object.status == self.object.STATUS_RESERVED:
+					try:
+						self.object.reserve_inventory()
+					except Exception as exc:
+						messages.error(request, str(exc))
+						form.add_error(None, str(exc))
+						self.object.delete()
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+					messages.success(request, "Venta guardada como RESERVADA. Stock reservado actualizado.")
+				else:
+					messages.success(request, "Proforma guardada exitosamente.")
+
+				return redirect(self.success_url)
+			except OperationalError as exc:
+				if _is_sqlite_locked_error(exc):
+					message = "La base de datos está ocupada en este momento. Intenta guardar nuevamente en unos segundos."
+					messages.error(request, message)
+					form.add_error(None, message)
+					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+				raise
 
 		return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
@@ -192,49 +209,57 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 		formset = SaleDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
-			new_status = form.cleaned_data.get("status")
-			upfront_amount = form.cleaned_data.get("upfront_amount")
-			if new_status == Sale.STATUS_CONFIRMED:
-				from caja.models import CashBox
-				try:
-					CashBox.validate_day_open(self.object.date)
-				except ValidationError as exc:
-					messages.error(request, str(exc))
-					form.add_error(None, str(exc))
+			try:
+				new_status = form.cleaned_data.get("status")
+				upfront_amount = form.cleaned_data.get("upfront_amount")
+				if new_status == Sale.STATUS_CONFIRMED:
+					from caja.models import CashBox
+					try:
+						CashBox.validate_day_open(self.object.date)
+					except ValidationError as exc:
+						messages.error(request, str(exc))
+						form.add_error(None, str(exc))
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+
+				self.object = form.save(commit=False)
+				self.object.save()
+				formset.instance = self.object
+				formset.save()
+				self.object.calculate_total()
+				self.object.calculate_due_date()
+
+				if upfront_amount is not None and upfront_amount > self.object.total:
+					form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
-			self.object = form.save(commit=False)
-			self.object.save()
-			formset.instance = self.object
-			formset.save()
-			self.object.calculate_total()
-			self.object.calculate_due_date()
+				if new_status == Sale.STATUS_CONFIRMED:
+					from caja.models import CashBox
+					try:
+						self.object.apply_inventory_output()
+						if upfront_amount is not None and upfront_amount > Decimal("0.00"):
+							payment = self.object.register_payment(
+								method_code=form.cleaned_data["payment_type"],
+								amount=upfront_amount,
+								recorded_by=request.user,
+								notes="Pago inicial registrado al confirmar proforma",
+							)
+							CashBox.register_sale_payment(payment)
+					except ValidationError as exc:
+						messages.error(request, str(exc))
+						form.add_error(None, str(exc))
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+					messages.success(request, "Proforma confirmada como venta exitosamente.")
+				else:
+					messages.success(request, "Proforma actualizada exitosamente.")
 
-			if upfront_amount is not None and upfront_amount > self.object.total:
-				form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
-				return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-
-			if new_status == Sale.STATUS_CONFIRMED:
-				from caja.models import CashBox
-				try:
-					self.object.apply_inventory_output()
-					if upfront_amount is not None and upfront_amount > Decimal("0.00"):
-						payment = self.object.register_payment(
-							method_code=form.cleaned_data["payment_type"],
-							amount=upfront_amount,
-							recorded_by=request.user,
-							notes="Pago inicial registrado al confirmar proforma",
-						)
-						CashBox.register_sale_payment(payment)
-				except ValidationError as exc:
-					messages.error(request, str(exc))
-					form.add_error(None, str(exc))
+				return redirect(self.success_url)
+			except OperationalError as exc:
+				if _is_sqlite_locked_error(exc):
+					message = "La base de datos está ocupada en este momento. Intenta guardar nuevamente en unos segundos."
+					messages.error(request, message)
+					form.add_error(None, message)
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-				messages.success(request, "Proforma confirmada como venta exitosamente.")
-			else:
-				messages.success(request, "Proforma actualizada exitosamente.")
-
-			return redirect(self.success_url)
+				raise
 
 		return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
@@ -511,6 +536,9 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 
 		elif action == "confirm":
 			allowed_from = {Sale.STATUS_RESERVED, Sale.STATUS_ORDERED}
+			if sale.status == Sale.STATUS_CONFIRMED_FLOW:
+				messages.info(request, "La venta ya está confirmada.")
+				return redirect("ventas:detail", pk=sale.pk)
 			if sale.status not in allowed_from:
 				messages.error(request, "Solo se puede confirmar desde estado reservado o pedido.")
 				return redirect("ventas:detail", pk=sale.pk)
@@ -565,11 +593,16 @@ class SaleAgingReportView(SalesWriteAccessMixin, View):
 
 	def get(self, request, *args, **kwargs):
 		today = timezone.localdate()
-		cancelled_statuses = {Sale.STATUS_CANCELED, Sale.STATUS_CANCELLED_FLOW}
+		allowed_statuses = {
+			Sale.STATUS_RESERVED,
+			Sale.STATUS_ORDERED,
+			Sale.STATUS_CONFIRMED_FLOW,
+			Sale.STATUS_CONFIRMED,
+		}
 
 		sales = (
 			Sale.objects
-			.exclude(status__in=cancelled_statuses)
+			.filter(status__in=allowed_statuses)
 			.filter(total__gt=0)
 			.select_related("client", "commercial_condition", "seller")
 			.prefetch_related("payments")

@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, View
+from datetime import timedelta
 
 from config.pdf_utils import render_to_pdf
 from empresas.models import Company
@@ -87,6 +88,31 @@ class InventoryMovementManualCreateView(InventoryAdminAccessMixin, CreateView):
 		formset = InventoryMovementDetailFormSet(request.POST, instance=self.object)
 
 		if form.is_valid() and formset.is_valid():
+			submitted_details = sorted(
+				(
+					item["product"].pk,
+					str(item["quantity"]),
+				)
+				for item in formset.cleaned_data
+				if item and not item.get("DELETE") and item.get("product") and item.get("quantity")
+			)
+			recent_threshold = timezone.now() - timedelta(seconds=20)
+			recent_candidates = (
+				InventoryMovement.objects.filter(
+					registered_by=request.user,
+					type=form.cleaned_data["type"],
+					description=form.cleaned_data["description"],
+					reference="Ajuste por inventario",
+					date__gte=recent_threshold,
+				)
+				.prefetch_related("details")
+			)
+			for movement in recent_candidates:
+				existing_details = sorted((detail.product_id, str(detail.quantity)) for detail in movement.details.all())
+				if existing_details == submitted_details:
+					messages.info(request, "El movimiento ya fue registrado. Se evitó un doble envío.")
+					return redirect(self.success_url)
+
 			self.object = form.save(commit=False)
 			self.object.reference = "Ajuste por inventario"
 			self.object.registered_by = request.user

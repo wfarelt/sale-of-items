@@ -15,7 +15,7 @@ from .models import Purchase
 
 class InventoryAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 	def test_func(self):
-		return self.request.user.is_admin or self.request.user.is_almacen
+		return self.request.user.is_admin
 
 
 class PurchaseListView(InventoryAccessMixin, ListView):
@@ -104,6 +104,9 @@ class PurchaseUpdateView(InventoryAccessMixin, UpdateView):
 	def post(self, request, *args, **kwargs):
 		self.object = self.get_object()
 		if not self.object.is_editable():
+			if self.object.status == "recibida":
+				messages.info(request, "La compra ya fue marcada como recibida.")
+				return redirect(self.success_url)
 			messages.warning(request, "Esta compra ya no puede editarse porque su estado no es Pendiente.")
 			return redirect(self.success_url)
 

@@ -21,6 +21,9 @@ from django.urls import include, path
 from types import MethodType
 
 
+handler500 = 'config.error_views.server_error_view'
+
+
 def admin_has_permission(self, request):
     return request.user.is_active and request.user.is_superuser
 

@@ -1,10 +1,13 @@
 from datetime import timedelta
+from collections import deque
+import re
 
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.conf import settings
 from django.db.models import Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import redirect, render
@@ -20,6 +23,78 @@ from compras.models import Purchase
 from ventas.models import Sale
 from .forms import CompanyUserCreateForm, CompanyUserUpdateForm, LoginProtectionAuthenticationForm, ProfileForm
 from .models import Role, User
+
+
+_INCIDENT_RE = re.compile(
+	r"^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\s"
+	r"\[(?P<level>[A-Z]+)\]\s"
+	r"(?P<logger>[^|]+)\|\s"
+	r"req_id=(?P<request_id>\S+)\s"
+	r"user=(?P<username>.*?)\s"
+	r"ip=(?P<ip>\S+)\s"
+	r"(?P<method>[A-Z-]+)\s"
+	r"(?P<path>.*?)\s\|\s"
+	r"(?P<message>.*)$"
+)
+
+
+def _incident_category(message):
+	if "UNHANDLED_EXCEPTION" in message:
+		return "Excepcion no controlada"
+	if "SERVER_ERROR_RESPONSE" in message:
+		return "Respuesta 5xx"
+	if "Internal Server Error" in message:
+		return "Error interno Django"
+	return "Error"
+
+
+def _read_recent_incidents(max_rows=10, sample_lines=500):
+	log_dir = getattr(settings, "LOG_DIR", settings.BASE_DIR / "logs")
+	log_files = [log_dir / "app.log", log_dir / "django.log"]
+	incidents = []
+
+	for log_file in log_files:
+		if not log_file.exists():
+			continue
+
+		try:
+			with log_file.open("r", encoding="utf-8", errors="ignore") as stream:
+				for line in deque(stream, maxlen=sample_lines):
+					text = line.strip()
+					if not text:
+						continue
+
+					is_relevant = (
+						"UNHANDLED_EXCEPTION" in text
+						or "SERVER_ERROR_RESPONSE" in text
+						or "Internal Server Error" in text
+					)
+					if not is_relevant:
+						continue
+
+					match = _INCIDENT_RE.match(text)
+					if match:
+						entry = match.groupdict()
+						entry["category"] = _incident_category(entry["message"])
+					else:
+						entry = {
+							"timestamp": "-",
+							"level": "ERROR",
+							"logger": log_file.name,
+							"request_id": "-",
+							"username": "unknown",
+							"ip": "-",
+							"method": "-",
+							"path": "-",
+							"message": text,
+							"category": "Error",
+						}
+					incidents.append(entry)
+		except OSError:
+			continue
+
+	incidents.sort(key=lambda row: row.get("timestamp", ""), reverse=True)
+	return incidents[:max_rows]
 
 
 class LoginView(SuccessMessageMixin, auth_views.LoginView):
@@ -132,6 +207,7 @@ def dashboard_view(request):
 	if user.is_superuser:
 		now = timezone.localtime()
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+		recent_incidents = _read_recent_incidents(max_rows=10)
 		context.update(
 			{
 				"page_title": "Panel de administracion",
@@ -143,6 +219,8 @@ def dashboard_view(request):
 				"clients_total": Client.objects.count(),
 				"products_total": Product.objects.count(),
 				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
+				"recent_incidents": recent_incidents,
+				"recent_incidents_total": len(recent_incidents),
 			}
 		)
 	elif user.is_admin:

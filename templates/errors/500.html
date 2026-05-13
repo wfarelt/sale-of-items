@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Error interno</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6f8;
+            color: #1f2937;
+        }
+        .wrap {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+        .card {
+            width: min(560px, 100%);
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        p {
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+        .incident {
+            margin-top: 14px;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        code {
+            font-family: Consolas, Monaco, monospace;
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="card">
+            <h1>Ocurrio un error interno</h1>
+            <p>El incidente fue registrado automaticamente. Intenta nuevamente en unos minutos.</p>
+            {% if show_incident_id %}
+            <div class="incident">
+                ID de incidencia: <code>{{ incident_id }}</code>
+            </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
