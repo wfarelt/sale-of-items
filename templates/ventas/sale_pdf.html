@@ -96,7 +96,7 @@
   </div>
   <div class="header-doc">
     <div class="doc-title">
-      {% if sale.status == 'confirmada' or sale.status == 'confirmed' %}Comprobante de Venta
+      {% if sale.status == 'confirmada' or sale.status == 'confirmed' %}{% if is_almacen_user %}Nota de Entrega{% else %}Comprobante de Venta{% endif %}
       {% elif sale.status == 'anulada' or sale.status == 'canceled' or sale.status == 'cancelled' %}Comprobante Anulado
       {% else %}{{ sale.status|sale_status_es }}{% endif %}
     </div>
@@ -190,37 +190,25 @@
 <!-- Firmas -->
 <div class="signatures">
   <div class="signature-box">
+    {% if is_almacen_user %}
+    <div class="signature-line">{{ current_user_name }}</div>
+    <div class="signature-label">Entrega</div>
+    {% else %}
     <div class="signature-line">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% elif sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</div>
     <div class="signature-label">Ejecutivo de ventas</div>
+    {% endif %}
   </div>
   <div class="signature-box">
-    <div class="signature-line">{{ sale.received_by_name|default:sale.client.name }}</div>
+    {% if is_almacen_user %}
+    <div class="signature-line">&nbsp;</div>
+    <div class="signature-label">Recibe</div>
+    
+    {% else %}
+    <div class="signature-line">{{ sale.client.name }}</div>
     <div class="signature-label">Cliente</div>
+    {% endif %}
   </div>
 </div>
-
-{% if sale.delivered_at %}
-
-<h4>DATOS DE ENTREGA</h4> 
-<div class="info-grid" style="margin-top: 8px;">
-  <div class="info-box">
-    <div class="label">Fecha</div>
-    <div class="value">{{ sale.delivered_at|date:"d/m/Y H:i" }}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Entregado por</div>
-    <div class="value">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% else %}-{% endif %}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Recibido por</div>
-    <div class="value">{{ sale.received_by_name|default:"-" }}</div>
-  </div>
-  <div class="info-box">
-    <div class="label">Documento</div>
-    <div class="value">{{ sale.received_by_doc|default:"-" }}</div>
-  </div>
-</div>
-{% endif %}
 
 <div class="footer">
   {{ company.name }} · Generado el {{ now|date:"d/m/Y H:i" }}{% if company.city %} · {{ company.city }}{% if company.country %}, {{ company.country }}{% endif %}{% endif %}

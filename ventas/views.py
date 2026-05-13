@@ -392,6 +392,7 @@ class SalePDFView(SalesAccessMixin, View):
 		details = list(sale.saledetail_set.select_related("product").all())
 		payments = list(sale.payments.select_related("method").all())
 		total_discount = sum((detail.discount or Decimal("0.00")) for detail in details)
+		current_user_name = request.user.get_full_name() or request.user.username
 		context = {
 			"sale": sale,
 			"details": details,
@@ -400,6 +401,8 @@ class SalePDFView(SalesAccessMixin, View):
 			"company": Company.get_solo(),
 			"now": timezone.localtime(),
 			"show_prices": not request.user.is_almacen,
+			"is_almacen_user": request.user.is_almacen,
+			"current_user_name": current_user_name,
 		}
 		filename = f"venta_{sale.id}.pdf"
 		return render_to_pdf("ventas/sale_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
