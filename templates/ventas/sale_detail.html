@@ -16,6 +16,7 @@
         {# ── New-flow transition buttons ── #}
         {% if sale.status == 'draft' or sale.status == 'proforma' %}
             {% if user.is_admin or user.is_vendedor %}
+                <a href="{% url 'ventas:update' sale.id %}" class="btn btn-outline-primary"><i class="fas fa-pen me-1"></i> Editar</a>
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
                     {% csrf_token %}<input type="hidden" name="action" value="reserve">
                     <button type="submit" class="btn btn-outline-info"><i class="fas fa-bookmark me-1"></i> Reservar</button>
@@ -39,7 +40,11 @@
             {% if user.is_admin %}
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
                     {% csrf_token %}<input type="hidden" name="action" value="cancel">
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Cancelar esta venta?')"><i class="fas fa-ban me-1"></i> Cancelar</button>
+                    {% if sale.status == 'ordered' or sale.status == 'reserved' %}
+                        <button type="submit" class="btn btn-outline-secondary" onclick="return confirm('¿Volver este registro a estado proforma?')"><i class="fas fa-rotate-left me-1"></i> Volver a proforma</button>
+                    {% else %}
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Cancelar esta venta?')"><i class="fas fa-ban me-1"></i> Cancelar</button>
+                    {% endif %}
                 </form>
             {% endif %}
         {% elif sale.status == 'confirmed' %}

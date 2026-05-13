@@ -572,9 +572,14 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 			if sale.status not in cancelable_from:
 				messages.error(request, "Esta venta ya está cancelada o no puede cancelarse.")
 				return redirect("ventas:detail", pk=sale.pk)
-			if sale.status == Sale.STATUS_RESERVED:
-				sale.release_reservation()
-			elif sale.status == Sale.STATUS_DELIVERED_FLOW:
+			if sale.status in {Sale.STATUS_ORDERED, Sale.STATUS_RESERVED}:
+				if sale.status == Sale.STATUS_RESERVED:
+					sale.release_reservation()
+				sale.status = Sale.STATUS_PROFORMA
+				sale.save(update_fields=["status", "updated_at"])
+				messages.success(request, "Reserva/Pedido revertido a PROFORMA.")
+				return redirect("ventas:detail", pk=sale.pk)
+			if sale.status == Sale.STATUS_DELIVERED_FLOW:
 				sale.restore_inventory_output()
 			sale.status = Sale.STATUS_CANCELLED_FLOW
 			sale.canceled_by = request.user
