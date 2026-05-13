@@ -1,5 +1,6 @@
 from datetime import timedelta
 from collections import deque
+from decimal import Decimal
 import re
 
 from django.contrib import messages
@@ -248,17 +249,26 @@ def dashboard_view(request):
 			monthly_labels.append(f"{spanish_days[day.weekday()]} {day.strftime('%d/%m')}")
 			monthly_amounts.append(round(sales_by_day.get(day, 0), 2))
 
+		receivables_sales = Sale.objects.filter(
+			status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW, Sale.STATUS_DELIVERED_FLOW]
+		).prefetch_related("payments")
+		receivables_total = sum((sale.pending_balance for sale in receivables_sales), Decimal("0.00"))
+		pending_delivery_total = Sale.objects.filter(
+			status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+			delivered_at__isnull=True,
+		).count()
+
 		context.update(
 			{
-				"clients_total": Client.objects.count(),
-				"products_total": Product.objects.count(),
+				"receivables_total": receivables_total,
+				"pending_delivery_total": pending_delivery_total,
 				"products_low_stock": Product.objects.filter(stock__lte=5).count(),
 				"purchases_total": Purchase.objects.count(),
 				"purchases_pending": Purchase.objects.filter(status="pendiente").count(),
 				"purchases_total_value": Purchase.objects.filter(status="recibida").aggregate(Sum("total"))["total__sum"] or 0,
 				"sales_total": Sale.objects.count(),
 				"sales_today_total": Sale.objects.filter(date__date=now.date()).count(),
-				"sales_today_amount": Sale.objects.filter(date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
+				"cash_income_today": CashBox.objects.filter(type=CashBox.TYPE_INCOME, date__date=now.date()).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"sales_month_total": Sale.objects.filter(date__gte=month_start).aggregate(Sum("total"))["total__sum"] or 0,
 				"movements_total": InventoryMovement.objects.count(),
 				"cash_entries_total": CashBox.objects.count(),
