@@ -31,6 +31,18 @@
     </div>
 </div>
 
+{% if user.is_almacen %}
+<div class="mb-3 d-flex gap-2 align-items-center">
+    <span class="text-muted small me-1">Mostrar:</span>
+    <a href="?entrega=pendientes{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="btn btn-sm {% if entrega_filter == 'pendientes' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        <i class="fas fa-clock me-1"></i>Pendientes de entrega
+    </a>
+    <a href="?entrega=entregadas{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="btn btn-sm {% if entrega_filter == 'entregadas' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        <i class="fas fa-check me-1"></i>Entregadas
+    </a>
+</div>
+{% endif %}
+
 <div class="card border-0 shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -94,6 +106,9 @@
                             </form>
                             {% endif %}
                         {% endif %}
+                        {% if sale.delivered_at and user.is_almacen %}
+                            <a href="{% url 'ventas:pdf' sale.pk %}" class="btn btn-sm btn-outline-secondary" title="Reimprimir nota de entrega" target="_blank"><i class="fas fa-print"></i></a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
@@ -110,8 +125,8 @@
 <nav class="mt-3" aria-label="Paginacion de ventas">
     <ul class="pagination justify-content-center mb-0">
         {% if page_obj.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Primera</a></li>
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Anterior</a></li>
+            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if entrega_filter %}&entrega={{ entrega_filter }}{% endif %}">Primera</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if entrega_filter %}&entrega={{ entrega_filter }}{% endif %}">Anterior</a></li>
         {% else %}
             <li class="page-item disabled"><span class="page-link">Primera</span></li>
             <li class="page-item disabled"><span class="page-link">Anterior</span></li>
@@ -120,8 +135,8 @@
         <li class="page-item active"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
 
         {% if page_obj.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Siguiente</a></li>
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Última</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if entrega_filter %}&entrega={{ entrega_filter }}{% endif %}">Siguiente</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if entrega_filter %}&entrega={{ entrega_filter }}{% endif %}">Última</a></li>
         {% else %}
             <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
             <li class="page-item disabled"><span class="page-link">Última</span></li>

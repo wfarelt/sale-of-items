@@ -43,10 +43,17 @@ class SaleListView(SalesAccessMixin, ListView):
 	def get_queryset(self):
 		queryset = super().get_queryset().select_related("client").prefetch_related("payments")
 		if self.request.user.is_almacen:
-			queryset = queryset.filter(
-				delivered_at__isnull=True,
-				status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
-			)
+			entrega = self.request.GET.get("entrega", "pendientes")
+			if entrega == "entregadas":
+				queryset = queryset.filter(
+					delivered_at__isnull=False,
+					status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+				)
+			else:  # pendientes (default)
+				queryset = queryset.filter(
+					delivered_at__isnull=True,
+					status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+				)
 		search = self.request.GET.get("q")
 		if search:
 			queryset = queryset.filter(client__name__icontains=search)
@@ -55,6 +62,7 @@ class SaleListView(SalesAccessMixin, ListView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context["search_query"] = self.request.GET.get("q", "")
+		context["entrega_filter"] = self.request.GET.get("entrega", "pendientes")
 		return context
 
 
