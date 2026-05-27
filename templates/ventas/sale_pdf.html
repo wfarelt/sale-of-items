@@ -194,7 +194,7 @@
     <div class="signature-line">{{ current_user_name }}</div>
     <div class="signature-label">Entrega</div>
     {% else %}
-    <div class="signature-line">{% if sale.delivered_by %}{{ sale.delivered_by.get_full_name|default:sale.delivered_by.username }}{% elif sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</div>
+    <div class="signature-line">{% if sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</div>
     <div class="signature-label">Ejecutivo de ventas</div>
     {% endif %}
   </div>
