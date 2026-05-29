@@ -1050,6 +1050,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         productCardList.innerHTML = pagedProducts.map(product => {
             const outOfStock = product.available_stock <= 0;
+            const reservedStock = parseFloat(product.stock_reservado || 0);
+            const hasReservedStock = reservedStock > 0;
             return `
                 <div class="col-12 col-md-6">
                     <div class="product-card">
@@ -1062,7 +1064,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div class="product-card-meta">Color: ${product.color || '-'}</div>
                             <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
                                 <span class="fw-bold">Bs ${parseFloat(product.price).toFixed(2)}</span>
-                                <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Disp: ${product.available_stock}</span>
+                                <div class="d-flex align-items-center gap-1">
+                                    ${hasReservedStock ? `<span class="badge text-bg-warning text-dark">Res: ${reservedStock.toFixed(2)}</span>` : ''}
+                                    <span class="badge ${outOfStock ? 'text-bg-danger' : 'text-bg-success'}">Disp: ${product.available_stock}</span>
+                                </div>
                             </div>
                             <button type="button" class="btn btn-sm ${outOfStock ? 'btn-outline-secondary' : 'btn-dark'} w-100 btn-add-product" data-product-id="${product.id}">
                                 <i class="fas fa-cart-plus me-1"></i> ${outOfStock ? 'Agregar (sin stock)' : 'Agregar'}

@@ -178,6 +178,7 @@ class SaleCreateView(SalesWriteAccessMixin, CreateView):
 				"name": product.name,
 				"price": float(product.price),
 				"stock": float(product.stock),
+				"stock_reservado": float(product.stock_reservado),
 				"available_stock": float(product.available_stock),
 				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
@@ -286,6 +287,7 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 				"name": product.name,
 				"price": float(product.price),
 				"stock": float(product.stock),
+				"stock_reservado": float(product.stock_reservado),
 				"available_stock": float(product.available_stock),
 				"brand": product.brand.name if product.brand else "",
 				"category": product.category.name,
@@ -553,6 +555,51 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 			if sale.status not in allowed_from:
 				messages.error(request, "Solo se puede confirmar desde estado reservado o pedido.")
 				return redirect("ventas:detail", pk=sale.pk)
+			if sale.status == Sale.STATUS_RESERVED:
+				insufficient_stock = []
+				for detail in sale.saledetail_set.select_related("product"):
+					in_stock = detail.product.stock
+					if in_stock < detail.quantity:
+						insufficient_stock.append(
+							f"{detail.product.name} (stock: {in_stock}, req: {detail.quantity})"
+						)
+				if insufficient_stock:
+					messages.error(
+						request,
+						"No se puede confirmar desde reserva: stock insuficiente en " + ", ".join(insufficient_stock[:3])
+						+ ("." if len(insufficient_stock) <= 3 else ", ..."),
+					)
+					return redirect("ventas:detail", pk=sale.pk)
+
+				missing_reservation = []
+				for detail in sale.saledetail_set.select_related("product"):
+					reserved = detail.product.stock_reservado
+					if reserved < detail.quantity:
+						missing_reservation.append(
+							f"{detail.product.name} (reservado: {reserved}, req: {detail.quantity})"
+						)
+				if missing_reservation:
+					messages.error(
+						request,
+						"No se puede confirmar: la reserva no cubre la venta en " + ", ".join(missing_reservation[:3])
+						+ ("." if len(missing_reservation) <= 3 else ", ..."),
+					)
+					return redirect("ventas:detail", pk=sale.pk)
+			if sale.status == Sale.STATUS_ORDERED:
+				insufficient_stock = []
+				for detail in sale.saledetail_set.select_related("product"):
+					available = detail.product.available_stock
+					if available < detail.quantity:
+						insufficient_stock.append(
+							f"{detail.product.name} (disp: {available}, req: {detail.quantity})"
+						)
+				if insufficient_stock:
+					messages.error(
+						request,
+						"No se puede confirmar el pedido: stock insuficiente en " + ", ".join(insufficient_stock[:3])
+						+ ("." if len(insufficient_stock) <= 3 else ", ..."),
+					)
+					return redirect("ventas:detail", pk=sale.pk)
 			sale.status = Sale.STATUS_CONFIRMED_FLOW
 			sale.save(update_fields=["status", "updated_at"])
 			messages.success(request, "Venta CONFIRMADA. Pendiente de entrega.")

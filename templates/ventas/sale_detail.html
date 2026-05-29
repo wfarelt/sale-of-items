@@ -23,7 +23,8 @@
                 </form>
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
                     {% csrf_token %}<input type="hidden" name="action" value="order">
-                    <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-clipboard-list me-1"></i> Registrar como pedido</button>
+                    <!-- Registrar como pedido de Importación -->
+                    <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-globe me-1"></i> Importación</button>
                 </form>
             {% endif %}
         {% elif sale.status == 'reserved' or sale.status == 'ordered' %}

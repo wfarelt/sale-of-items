@@ -61,24 +61,27 @@ class Sale(models.Model):
 		("tarjeta", "Tarjeta"),
 	)
 
-	STATUS_DRAFT = "draft"
+	STATUS_PROFORMA = "proforma"
+	STATUS_DRAFT = STATUS_PROFORMA
 	STATUS_RESERVED = "reserved"
 	STATUS_ORDERED = "ordered"
 	STATUS_CONFIRMED_FLOW = "confirmed"
 	STATUS_DELIVERED_FLOW = "delivered"
 	STATUS_CANCELLED_FLOW = "cancelled"
 
-	STATUS_PROFORMA = "proforma"
 	STATUS_CONFIRMED = "confirmada"
 	STATUS_CANCELED = "anulada"
+
+	# Legacy values kept for data normalization.
+	STATUS_LEGACY_DRAFT = "draft"
+	STATUS_LEGACY_CANCELED_US = "canceled"
 	STATUS_CHOICES = (
-		(STATUS_DRAFT, "DRAFT - Proforma"),
-		(STATUS_RESERVED, "RESERVED - Reserva"),
-		(STATUS_ORDERED, "ORDERED - Pedido"),
+		(STATUS_PROFORMA, "Proforma"),
+		(STATUS_RESERVED, "Reservada"),
+		(STATUS_ORDERED, "Pedido"),
 		(STATUS_CONFIRMED_FLOW, "CONFIRMED - Venta aceptada"),
 		(STATUS_DELIVERED_FLOW, "DELIVERED - Entregado"),
 		(STATUS_CANCELLED_FLOW, "CANCELLED - Cancelado"),
-		(STATUS_PROFORMA, "Proforma"),
 		(STATUS_CONFIRMED, "Confirmada"),
 		(STATUS_CANCELED, "Anulada"),
 	)
@@ -157,6 +160,18 @@ class Sale(models.Model):
 		verbose_name = "Venta"
 		verbose_name_plural = "Ventas"
 
+	@classmethod
+	def normalize_status_value(cls, value):
+		mapping = {
+			cls.STATUS_LEGACY_DRAFT: cls.STATUS_PROFORMA,
+			cls.STATUS_LEGACY_CANCELED_US: cls.STATUS_CANCELLED_FLOW,
+		}
+		return mapping.get(value, value)
+
+	def save(self, *args, **kwargs):
+		self.status = self.normalize_status_value(self.status)
+		return super().save(*args, **kwargs)
+
 	def __str__(self):
 		return f"Venta #{self.pk} - {self.client.name}"
 
@@ -168,7 +183,7 @@ class Sale(models.Model):
 
 	def calculate_due_date(self, *, save=True):
 		base_date = (self.date or timezone.now()).date()
-		if self.status in {self.STATUS_PROFORMA, self.STATUS_DRAFT}:
+		if self.normalize_status_value(self.status) == self.STATUS_PROFORMA:
 			from empresas.models import Company
 
 			company = Company.get_solo()
@@ -205,10 +220,12 @@ class Sale(models.Model):
 		return self.PAYMENT_STATUS_PAID
 
 	def is_confirmed_state(self):
-		return self.status in {self.STATUS_CONFIRMED, self.STATUS_CONFIRMED_FLOW}
+		status = self.normalize_status_value(self.status)
+		return status in {self.STATUS_CONFIRMED, self.STATUS_CONFIRMED_FLOW}
 
 	def is_canceled_state(self):
-		return self.status in {self.STATUS_CANCELED, self.STATUS_CANCELLED_FLOW}
+		status = self.normalize_status_value(self.status)
+		return status in {self.STATUS_CANCELED, self.STATUS_CANCELLED_FLOW}
 
 	def register_payment(self, *, method_code, amount, recorded_by=None, paid_at=None, reference="", notes=""):
 		if amount is None or amount <= Decimal("0.00"):
