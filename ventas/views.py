@@ -414,7 +414,15 @@ class SalePDFView(SalesAccessMixin, View):
 			"is_almacen_user": request.user.is_almacen,
 			"current_user_name": current_user_name,
 		}
-		filename = f"venta_{sale.id}.pdf"
+		year = timezone.localtime().year
+		sale_number = f"{year}{sale.id:03d}"
+		client_name = sale.client.name.upper() if getattr(sale, 'client', None) and sale.client.name else "CLIENTE"
+		# Remove characters not allowed in Windows filenames
+		for ch in '\\/:*?"<>|':
+			client_name = client_name.replace(ch, '')
+		client_name = client_name.strip()
+		suffix = " (ENTREGA)" if request.user.is_almacen else ""
+		filename = f"{sale_number} - {client_name}{suffix}.pdf"
 		return render_to_pdf("ventas/sale_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
 
 
