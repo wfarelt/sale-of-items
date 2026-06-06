@@ -65,6 +65,9 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
+                        <a href="{% url 'clientes:account_statement' client.pk %}?next={% url 'clientes:list' %}" class="btn btn-sm btn-outline-primary" title="Estado de cuenta">
+                            <i class="fas fa-file-invoice"></i>
+                        </a>
                         <a href="{% url 'clientes:update' client.pk %}" class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-pen"></i>
                         </a>

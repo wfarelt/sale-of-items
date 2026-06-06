@@ -91,6 +91,7 @@
                                         <li><a class="dropdown-item" href="{% url 'ventas:list' %}"><i class="fas fa-cash-register"></i> Ventas</a></li>
                                     {% endif %}
                                     {% if user.is_admin or user.is_vendedor %}
+                                        <li><a class="dropdown-item" href="{% url 'ventas:aging_report' %}"><i class="fas fa-chart-bar"></i> Cuentas por cobrar</a></li>
                                         <li><a class="dropdown-item" href="{% url 'caja:list' %}"><i class="fas fa-wallet"></i> Caja</a></li>
                                     {% endif %}
                                 {% endif %}

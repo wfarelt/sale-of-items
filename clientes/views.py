@@ -3,10 +3,15 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView, DetailView
+from django.utils import timezone
+
+from config.pdf_utils import render_to_pdf
+from empresas.models import Company
+from ventas.models import Sale, Payment
 
 from .forms import ClientForm
 from .models import Client
@@ -142,4 +147,86 @@ class ClientQuickCreateView(ClientAccessMixin, View):
 				},
 			}
 		)
+
+
+class AccountStatementView(ClientAccessMixin, DetailView):
+	model = Client
+	template_name = "clientes/account_statement.html"
+	context_object_name = "client"
+
+	def get_context_data(self, **kwargs):
+		client = self.get_object()
+		# ventas del cliente con pagos prefeteched
+		sales_qs = (
+			Sale.objects.filter(client=client).exclude(status=Sale.STATUS_PROFORMA)
+			.select_related("commercial_condition", "seller")
+			.prefetch_related("payments")
+			.order_by("-date")
+		)
+		sales_data = []
+		total_pending = 0
+		total_billed = 0
+		total_paid_sum = 0
+		for s in sales_qs:
+			paid = s.total_paid
+			pending = s.pending_balance
+			total_pending += pending
+			total_billed += s.total or 0
+			total_paid_sum += paid
+			sales_data.append({"sale": s, "total": s.total, "paid": paid, "pending": pending, "due_date": s.due_date})
+
+		payments = Payment.objects.filter(sale__client=client).select_related("method", "sale").order_by("-paid_at")
+
+		context = super().get_context_data(**kwargs)
+		context.update({
+			"sales_data": sales_data,
+			"payments": payments,
+			"total_pending": total_pending,
+			"total_billed": total_billed,
+			"total_paid_sum": total_paid_sum,
+			"generated_at": timezone.now(),
+			"company": Company.get_solo(),
+		})
+		return context
+
+
+class AccountStatementPdfView(ClientAccessMixin, View):
+	def get(self, request, pk, *args, **kwargs):
+		client = get_object_or_404(Client, pk=pk)
+
+		# Recompute context similarly to AccountStatementView
+		sales_qs = (
+			Sale.objects.filter(client=client).exclude(status=Sale.STATUS_PROFORMA)
+			.select_related("commercial_condition", "seller")
+			.prefetch_related("payments")
+			.order_by("-date")
+		)
+		sales_data = []
+		total_pending = 0
+		total_billed = 0
+		total_paid_sum = 0
+		for s in sales_qs:
+			paid = s.total_paid
+			pending = s.pending_balance
+			total_pending += pending
+			total_billed += s.total or 0
+			total_paid_sum += paid
+			sales_data.append({"sale": s, "total": s.total, "paid": paid, "pending": pending, "due_date": s.due_date})
+
+		payments = Payment.objects.filter(sale__client=client).select_related("method", "sale").order_by("-paid_at")
+
+		context = {
+			"client": client,
+			"sales_data": sales_data,
+			"payments": payments,
+			"total_pending": total_pending,
+			"total_billed": total_billed,
+			"total_paid_sum": total_paid_sum,
+			"generated_at": timezone.now(),
+			"company": Company.get_solo(),
+		}
+
+		filename = f"estado_cliente_{client.nit_ci}.pdf"
+		base_url = request.build_absolute_uri("/")
+		return render_to_pdf("clientes/account_statement_pdf.html", context, filename=filename, base_url=base_url)
 

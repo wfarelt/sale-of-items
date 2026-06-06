@@ -116,8 +116,11 @@
                         Bs {{ sale.balance_due|floatformat:2 }}
                     </td>
                     <td class="text-end">
-                        <a href="{% url 'ventas:detail' sale.pk %}" class="btn btn-sm btn-outline-secondary">
+                        <a href="{% url 'ventas:detail' sale.pk %}" class="btn btn-sm btn-outline-secondary" title="Ver venta">
                             <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'clientes:account_statement' sale.client.pk %}?next={% url 'ventas:aging_report' %}" class="btn btn-sm btn-outline-primary" title="Estado de cuenta">
+                            <i class="fas fa-file-invoice"></i>
                         </a>
                     </td>
                 </tr>

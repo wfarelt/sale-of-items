@@ -8,6 +8,7 @@ from .views import (
     ClientQuickCreateView,
     ClientUpdateView,
 )
+from .views import AccountStatementView, AccountStatementPdfView
 
 app_name = "clientes"
 
@@ -18,4 +19,6 @@ urlpatterns = [
     path("api/crear-rapido/", ClientQuickCreateView.as_view(), name="quick_create"),
     path("<int:pk>/editar/", ClientUpdateView.as_view(), name="update"),
     path("<int:pk>/eliminar/", ClientDeleteView.as_view(), name="delete"),
+    path("<int:pk>/estado-cuenta/", AccountStatementView.as_view(), name="account_statement"),
+    path("<int:pk>/estado-cuenta/pdf/", AccountStatementPdfView.as_view(), name="account_statement_pdf"),
 ]
