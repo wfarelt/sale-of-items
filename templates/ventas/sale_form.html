@@ -1126,8 +1126,16 @@ document.addEventListener('DOMContentLoaded', function () {
             priceInput.value = parseFloat(meta.price).toFixed(2);
         }
         if (refInput && !refInput.value) {
-            const currentQty = quantityInput ? parseFloat(quantityInput.value || '0') : 0;
-            refInput.value = (currentQty > 0 ? currentQty : (meta.m2_por_caja || 1)).toFixed(2);
+            // Prefer the saved ref_m2 value (hidden Django field) over the quantity,
+            // so that editing a proforma does not recalculate from the wrong base.
+            const refM2HiddenInput = row.querySelector('input[name*="-ref_m2"]');
+            const savedRefM2 = refM2HiddenInput ? parseFloat(refM2HiddenInput.value || '0') : 0;
+            if (savedRefM2 > 0) {
+                refInput.value = savedRefM2.toFixed(2);
+            } else {
+                const currentQty = quantityInput ? parseFloat(quantityInput.value || '0') : 0;
+                refInput.value = (currentQty > 0 ? currentQty : (meta.m2_por_caja || 1)).toFixed(2);
+            }
         }
     }
 
@@ -1177,7 +1185,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let boxes = 0, qty = 0;
             if (m2PorCaja > 0 && refM2 > 0) {
-                boxes = Math.ceil(refM2 / m2PorCaja);
+                // Subtract a tiny epsilon before ceiling to avoid floating-point errors
+                // where an exact integer (e.g. 3.0) is represented as 3.0000000000000004,
+                // which would incorrectly ceil to 4.
+                boxes = Math.ceil(refM2 / m2PorCaja - 1e-9);
                 qty = boxes * m2PorCaja;
             } else if (m2PorCaja === 0 && refM2 > 0) {
                 // Product without m2_por_caja: use ref input directly as quantity
