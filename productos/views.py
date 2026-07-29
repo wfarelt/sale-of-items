@@ -1,8 +1,13 @@
+import io
+
+import openpyxl
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .forms import (
@@ -32,6 +37,7 @@ class ProductListView(InventoryAccessMixin, ListView):
 	def get_queryset(self):
 		queryset = super().get_queryset().select_related("category", "brand")
 		search = self.request.GET.get("q", "").strip()
+		stock_filter = self.request.GET.get("stock", "todos")
 
 		if search:
 			queryset = queryset.filter(
@@ -42,12 +48,74 @@ class ProductListView(InventoryAccessMixin, ListView):
 				| Q(brand__name__icontains=search)
 			)
 
+		if stock_filter == "con_stock":
+			queryset = queryset.filter(stock__gt=0)
+		elif stock_filter == "sin_stock":
+			queryset = queryset.filter(stock__lte=0)
+
 		return queryset
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context["search_query"] = self.request.GET.get("q", "").strip()
+		context["stock_filter"] = self.request.GET.get("stock", "todos")
 		return context
+
+
+class ProductExportExcelView(InventoryAccessMixin, View):
+	def get(self, request, *args, **kwargs):
+		queryset = Product.objects.select_related(
+			"category", "brand", "formato", "acabado", "metros_cuadrados_por_caja"
+		).order_by("name")
+		search = request.GET.get("q", "").strip()
+		stock_filter = request.GET.get("stock", "todos")
+
+		if search:
+			queryset = queryset.filter(
+				Q(name__icontains=search)
+				| Q(description__icontains=search)
+				| Q(color__icontains=search)
+				| Q(category__name__icontains=search)
+				| Q(brand__name__icontains=search)
+			)
+
+		if stock_filter == "con_stock":
+			queryset = queryset.filter(stock__gt=0)
+		elif stock_filter == "sin_stock":
+			queryset = queryset.filter(stock__lte=0)
+
+		wb = openpyxl.Workbook()
+		ws = wb.active
+		ws.title = "Productos"
+
+		headers = ["Código", "Nombre", "Descripción", "Categoría", "Marca", "Formato", "Acabado", "m²/caja", "Estado", "Stock (m²)", "Cajas"]
+		ws.append(headers)
+
+		for product in queryset:
+			ws.append([
+				product.code or "",
+				product.name,
+				product.description or "",
+				str(product.category) if product.category else "",
+				str(product.brand) if product.brand else "",
+				str(product.formato) if product.formato else "",
+				str(product.acabado) if product.acabado else "",
+				str(product.metros_cuadrados_por_caja) if product.metros_cuadrados_por_caja else "",
+				"Activo" if product.is_active else "Inactivo",
+				float(product.stock),
+				product.stock_en_cajas if product.stock_en_cajas is not None else "",
+			])
+
+		output = io.BytesIO()
+		wb.save(output)
+		output.seek(0)
+
+		response = HttpResponse(
+			output.read(),
+			content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		)
+		response["Content-Disposition"] = 'attachment; filename="productos.xlsx"'
+		return response
 
 
 class ProductCreateView(InventoryAccessMixin, CreateView):

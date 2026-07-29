@@ -113,3 +113,10 @@ class Product(models.Model):
 		from decimal import Decimal
 		available = self.stock - self.stock_reservado
 		return available if available > Decimal("0") else Decimal("0")
+
+	@property
+	def stock_en_cajas(self):
+		import math
+		if self.metros_cuadrados_por_caja and self.metros_cuadrados_por_caja.value:
+			return math.floor(self.stock / self.metros_cuadrados_por_caja.value)
+		return None

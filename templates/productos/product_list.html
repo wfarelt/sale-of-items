@@ -24,14 +24,23 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
         <form method="get" class="row g-2 align-items-center">
+            <input type="hidden" name="stock" value="{{ stock_filter }}">
             <div class="col-12 col-md-8">
                 <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Buscar por producto, categoria, marca o color">
             </div>
             <div class="col-12 col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-dark w-100"><i class="fas fa-magnifying-glass me-1"></i> Buscar</button>
-                <a href="{% url 'productos:list' %}" class="btn btn-outline-secondary">Limpiar</a>
+                <a href="{% url 'productos:export_excel' %}?q={{ search_query|urlencode }}&stock={{ stock_filter }}" class="btn btn-success" title="Exportar Excel"><i class="fas fa-file-excel"></i></a>
             </div>
         </form>
+        <div class="d-flex gap-2 mt-2">
+            <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}stock=todos"
+               class="btn btn-sm {% if stock_filter == 'todos' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Todos</a>
+            <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}stock=con_stock"
+               class="btn btn-sm {% if stock_filter == 'con_stock' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Con stock</a>
+            <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}stock=sin_stock"
+               class="btn btn-sm {% if stock_filter == 'sin_stock' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Sin stock</a>
+        </div>
     </div>
 </div>
 
@@ -48,8 +57,10 @@
                     <th>Formato</th>
                     <th>Acabado</th>
                     <th>m²/caja</th>
+                    <!--
                     <th>Indicaciones de uso</th>
                     <th>Color</th>
+                    -->
                     <th>Estado</th>
                     {% if user.is_admin %}
                     <th class="text-end">Precio</th>
@@ -80,8 +91,10 @@
                     <td>{{ product.formato|default:'-' }}</td>
                     <td>{{ product.acabado|default:'-' }}</td>
                     <td>{{ product.metros_cuadrados_por_caja|default:'-' }}</td>
-                    <td>{{ product.indicaciones_uso|default:'-'|truncatechars:40 }}</td>
-                    <td>{{ product.color|default:'-' }}</td>
+                    <!--
+                        <td>{{ product.indicaciones_uso|default:'-'|truncatechars:40 }}</td>
+                        <td>{{ product.color|default:'-' }}</td>
+                    -->
                     <td>
                         {% if product.is_active %}
                             <span class="badge text-bg-success">Activo</span>
@@ -93,11 +106,16 @@
                     <td class="text-end">Bs {{ product.price }}</td>
                     {% endif %}
                     <td class="text-end">
-                        {% if product.stock_minimo and product.stock < product.stock_minimo %}
-                            <span class="badge text-bg-danger">{{ product.stock }}</span>
-                        {% else %}
-                            <span class="badge text-bg-success">{{ product.stock }}</span>
-                        {% endif %}
+                        <div>
+                            {% if product.stock_minimo and product.stock < product.stock_minimo %}
+                                <span class="badge text-bg-danger">{{ product.stock }}</span>
+                            {% else %}
+                                <span class="badge text-bg-success">{{ product.stock }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted">
+                            {% if product.metros_cuadrados_por_caja %}{{ product.stock_en_cajas }} cajas{% else %}—{% endif %}
+                        </div>
                     </td>
                     {% if user.is_admin %}
                     <td class="text-end">

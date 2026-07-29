@@ -27,6 +27,7 @@ from .views import (
     M2CajaUpdateView,
     ProductCreateView,
     ProductDeleteView,
+    ProductExportExcelView,
     ProductListView,
     ProductUpdateView,
 )
@@ -35,6 +36,7 @@ app_name = "productos"
 
 urlpatterns = [
     path("", ProductListView.as_view(), name="list"),
+    path("exportar/excel/", ProductExportExcelView.as_view(), name="export_excel"),
     path("nuevo/", ProductCreateView.as_view(), name="create"),
     path("<int:pk>/editar/", ProductUpdateView.as_view(), name="update"),
     path("<int:pk>/eliminar/", ProductDeleteView.as_view(), name="delete"),
