@@ -101,7 +101,13 @@
       {% else %}{{ sale.status|sale_status_es }}{% endif %}
     </div>
     <div class="doc-number">#{{ sale.id }}</div>
-    <div class="company-detail">{{ sale.date|date:"d/m/Y H:i" }}</div>
+    {% if is_almacen_user %}
+      <!-- Fecha de entrega -->
+      <div class="company-detail">{{ sale.delivered_at|date:"d/m/Y H:i" }}</div>
+    {% else %}  
+      <!-- Fecha de venta -->
+       <div class="company-detail">{{ sale.date|date:"d/m/Y H:i" }}</div>
+    {% endif %}
     {% if sale.status == 'proforma' or sale.status == 'draft' %}
       <div class="company-detail">Valida hasta: {{ sale.due_date|date:"d/m/Y" }}</div>
     {% endif %}
