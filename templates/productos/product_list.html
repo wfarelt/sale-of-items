@@ -65,7 +65,8 @@
                     {% if user.is_admin %}
                     <th class="text-end">Precio</th>
                     {% endif %}
-                    <th class="text-end">Stock</th>
+                    <th class="text-end">Reservado</th>
+                    <th class="text-end">Stock disponible</th>
                     {% if user.is_admin %}
                     <th class="text-end">Acciones</th>
                     {% endif %}
@@ -107,14 +108,22 @@
                     {% endif %}
                     <td class="text-end">
                         <div>
-                            {% if product.stock_minimo and product.stock < product.stock_minimo %}
-                                <span class="badge text-bg-danger">{{ product.stock }}</span>
+                            <span class="badge text-bg-warning text-dark">{{ product.stock_reservado }}</span>
+                        </div>
+                        <div class="small text-muted">
+                            {% if product.metros_cuadrados_por_caja %}{{ product.stock_reservado_en_cajas }} cajas{% else %}—{% endif %}
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <div>
+                            {% if product.stock_minimo and product.available_stock < product.stock_minimo %}
+                                <span class="badge text-bg-danger">{{ product.available_stock }}</span>
                             {% else %}
-                                <span class="badge text-bg-success">{{ product.stock }}</span>
+                                <span class="badge text-bg-success">{{ product.available_stock }}</span>
                             {% endif %}
                         </div>
                         <div class="small text-muted">
-                            {% if product.metros_cuadrados_por_caja %}{{ product.stock_en_cajas }} cajas{% else %}—{% endif %}
+                            {% if product.metros_cuadrados_por_caja %}{{ product.available_stock_en_cajas }} cajas{% else %}—{% endif %}
                         </div>
                     </td>
                     {% if user.is_admin %}
@@ -126,7 +135,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="{% if user.is_admin %}14{% else %}12{% endif %}" class="text-center py-4 text-muted">No hay productos registrados.</td>
+                    <td colspan="{% if user.is_admin %}15{% else %}13{% endif %}" class="text-center py-4 text-muted">No hay productos registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

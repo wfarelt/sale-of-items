@@ -47,12 +47,12 @@ class SaleListView(SalesAccessMixin, ListView):
 			if entrega == "entregadas":
 				queryset = queryset.filter(
 					delivered_at__isnull=False,
-					status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+					status=Sale.STATUS_EXECUTED,
 				)
 			else:  # pendientes (default)
 				queryset = queryset.filter(
 					delivered_at__isnull=True,
-					status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+					status=Sale.STATUS_EXECUTED,
 				)
 		search = self.request.GET.get("q")
 		if search:
@@ -98,15 +98,6 @@ class SaleCreateView(SalesWriteAccessMixin, CreateView):
 			try:
 				new_status = form.cleaned_data.get("status")
 				upfront_amount = form.cleaned_data.get("upfront_amount")
-				if new_status == Sale.STATUS_CONFIRMED:
-					from caja.models import CashBox
-					try:
-						CashBox.validate_day_open(timezone.now())
-					except ValidationError as exc:
-						messages.error(request, str(exc))
-						form.add_error(None, str(exc))
-						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-
 				self.object = form.save(commit=False)
 				self.object.seller = request.user
 				self.object.save()
@@ -120,35 +111,11 @@ class SaleCreateView(SalesWriteAccessMixin, CreateView):
 					self.object.delete()
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
-				if self.object.status == self.object.STATUS_CONFIRMED:
-					from caja.models import CashBox
-					try:
-						CashBox.validate_day_open(self.object.date)
-						self.object.apply_inventory_output()
-						if upfront_amount is not None and upfront_amount > Decimal("0.00"):
-							payment = self.object.register_payment(
-								method_code=form.cleaned_data["payment_type"],
-								amount=upfront_amount,
-								recorded_by=request.user,
-								paid_at=self.object.date,
-								notes="Pago inicial registrado en creación de venta",
-							)
-							CashBox.register_sale_payment(payment)
-					except ValidationError as exc:
-						messages.error(request, str(exc))
-						form.add_error(None, str(exc))
-						self.object.delete()
-						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-					messages.success(request, "Venta registrada exitosamente.")
-				elif self.object.status == self.object.STATUS_RESERVED:
-					try:
-						self.object.reserve_inventory()
-					except Exception as exc:
-						messages.error(request, str(exc))
-						form.add_error(None, str(exc))
-						self.object.delete()
-						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
+				if new_status == Sale.STATUS_RESERVED:
+					self.object.reserve_inventory()
 					messages.success(request, "Venta guardada como RESERVADA. Stock reservado actualizado.")
+				elif new_status == Sale.STATUS_ORDERED:
+					messages.success(request, "Venta guardada como PEDIDO.")
 				else:
 					messages.success(request, "Proforma guardada exitosamente.")
 
@@ -221,15 +188,6 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 			try:
 				new_status = form.cleaned_data.get("status")
 				upfront_amount = form.cleaned_data.get("upfront_amount")
-				if new_status == Sale.STATUS_CONFIRMED:
-					from caja.models import CashBox
-					try:
-						CashBox.validate_day_open(self.object.date)
-					except ValidationError as exc:
-						messages.error(request, str(exc))
-						form.add_error(None, str(exc))
-						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-
 				self.object = form.save(commit=False)
 				self.object.save()
 				formset.instance = self.object
@@ -241,25 +199,7 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 					form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
-				if new_status == Sale.STATUS_CONFIRMED:
-					from caja.models import CashBox
-					try:
-						self.object.apply_inventory_output()
-						if upfront_amount is not None and upfront_amount > Decimal("0.00"):
-							payment = self.object.register_payment(
-								method_code=form.cleaned_data["payment_type"],
-								amount=upfront_amount,
-								recorded_by=request.user,
-								notes="Pago inicial registrado al confirmar proforma",
-							)
-							CashBox.register_sale_payment(payment)
-					except ValidationError as exc:
-						messages.error(request, str(exc))
-						form.add_error(None, str(exc))
-						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
-					messages.success(request, "Proforma confirmada como venta exitosamente.")
-				else:
-					messages.success(request, "Proforma actualizada exitosamente.")
+				messages.success(request, "Proforma actualizada exitosamente.")
 
 				return redirect(self.success_url)
 			except OperationalError as exc:
@@ -322,11 +262,15 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 			return redirect(self.success_url)
 
 		self.object = self.get_object()
-		if self.object.status == self.object.STATUS_CANCELED:
+		if self.object.is_canceled_state():
 			messages.info(request, "La venta ya se encuentra anulada.")
 			return redirect(self.success_url)
 
-		if self.object.status == self.object.STATUS_CONFIRMED:
+		if not self.object.is_executed_state():
+			messages.error(request, "Solo se pueden anular ventas ejecutadas.")
+			return redirect(self.success_url)
+
+		if self.object.is_executed_state():
 			from caja.models import CashBox
 			try:
 				CashBox.validate_day_open()
@@ -341,10 +285,7 @@ class SaleDeleteView(SalesAccessMixin, DeleteView):
 			else:
 				CashBox.register_sale_reversal(self.object)
 			messages.warning(request, "Venta anulada y stock restaurado.")
-		else:
-			messages.warning(request, "Proforma anulada.")
-
-		self.object.status = self.object.STATUS_CANCELED
+		self.object.status = self.object.STATUS_CANCELLED
 		self.object.canceled_by = request.user
 		self.object.canceled_at = timezone.now()
 		self.object.save(update_fields=["status", "canceled_by", "canceled_at", "updated_at"])
@@ -361,11 +302,14 @@ class SaleDeliveryView(SalesDeliveryAccessMixin, UpdateView):
 
 	def dispatch(self, request, *args, **kwargs):
 		self.object = self.get_object()
-		if self.object.status == Sale.STATUS_CANCELED:
+		if self.object.is_canceled_state():
 			messages.error(request, "No puedes registrar entrega en una venta anulada.")
 			return redirect("ventas:detail", pk=self.object.pk)
-		if self.object.status != Sale.STATUS_CONFIRMED:
-			messages.error(request, "Solo puedes registrar entrega en ventas confirmadas.")
+		if not self.object.is_executed_state():
+			messages.error(request, "Solo puedes registrar entrega en ventas ejecutadas.")
+			return redirect("ventas:detail", pk=self.object.pk)
+		if self.object.delivery_status == Sale.DELIVERY_STATUS_DELIVERED:
+			messages.info(request, "La venta ya se encuentra entregada.")
 			return redirect("ventas:detail", pk=self.object.pk)
 		return super().dispatch(request, *args, **kwargs)
 
@@ -385,12 +329,7 @@ class SaleDeliveryView(SalesDeliveryAccessMixin, UpdateView):
 		self.object.delivered_at = timezone.now()
 		self.object.delivered_by = self.request.user
 		self.object.save(update_fields=[
-			"received_by_name",
-			"received_by_doc",
-			"delivery_notes",
-			"delivered_at",
-			"delivered_by",
-			"updated_at",
+			"received_by_name", "received_by_doc", "delivery_notes", "delivered_at", "delivered_by", "updated_at",
 		])
 		messages.success(self.request, "Entrega registrada exitosamente.")
 		return redirect(self.get_success_url())
@@ -432,6 +371,9 @@ class SaleRegisterPaymentView(SalesWriteAccessMixin, View):
 		sale = Sale.objects.select_related("client").get(pk=pk)
 		if sale.is_canceled_state():
 			messages.error(request, "No puedes registrar pagos para una venta anulada.")
+			return redirect("ventas:detail", pk=sale.pk)
+		if not sale.is_executed_state():
+			messages.error(request, "Solo puedes registrar pagos para una venta ejecutada.")
 			return redirect("ventas:detail", pk=sale.pk)
 
 		form = SalePaymentForm(request.POST)
@@ -509,14 +451,14 @@ class SaleCreatePurchaseView(SalesWriteAccessMixin, View):
 
 class SaleStatusTransitionView(SalesAccessMixin, View):
 	"""Handles status transitions for the new fulfillment flow:
-	reserve, order, confirm, deliver, cancel.
+	reserve, order, execute, revert, cancel.
 	"""
 
 	ALLOWED_ROLES_PER_ACTION = {
 		"reserve": ("is_admin", "is_vendedor"),
 		"order": ("is_admin", "is_vendedor"),
-		"confirm": ("is_admin", "is_vendedor"),
-		"deliver": ("is_admin", "is_almacen"),
+		"execute": ("is_admin", "is_vendedor"),
+		"revert": ("is_admin", "is_vendedor"),
 		"cancel": ("is_admin",),
 	}
 
@@ -537,9 +479,9 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 			return redirect("ventas:detail", pk=sale.pk)
 
 		if action == "reserve":
-			allowed_from = {Sale.STATUS_DRAFT, Sale.STATUS_PROFORMA}
+			allowed_from = {Sale.STATUS_PROFORMA}
 			if sale.status not in allowed_from:
-				messages.error(request, "Solo se puede reservar desde estado borrador o proforma.")
+				messages.error(request, "Solo se puede reservar desde estado proforma.")
 				return redirect("ventas:detail", pk=sale.pk)
 			sale.reserve_inventory()
 			sale.status = Sale.STATUS_RESERVED
@@ -547,21 +489,21 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 			messages.success(request, "Venta marcada como RESERVADA. Stock reservado actualizado.")
 
 		elif action == "order":
-			allowed_from = {Sale.STATUS_DRAFT, Sale.STATUS_PROFORMA}
+			allowed_from = {Sale.STATUS_PROFORMA}
 			if sale.status not in allowed_from:
-				messages.error(request, "Solo se puede registrar como pedido desde estado borrador o proforma.")
+				messages.error(request, "Solo se puede registrar como pedido desde estado proforma.")
 				return redirect("ventas:detail", pk=sale.pk)
 			sale.status = Sale.STATUS_ORDERED
 			sale.save(update_fields=["status", "updated_at"])
 			messages.success(request, "Venta marcada como PEDIDO. Sin impacto en inventario hasta la entrega.")
 
-		elif action == "confirm":
-			allowed_from = {Sale.STATUS_RESERVED, Sale.STATUS_ORDERED}
-			if sale.status == Sale.STATUS_CONFIRMED_FLOW:
-				messages.info(request, "La venta ya está confirmada.")
+		elif action == "execute":
+			allowed_from = {Sale.STATUS_PROFORMA, Sale.STATUS_RESERVED, Sale.STATUS_ORDERED}
+			if sale.status == Sale.STATUS_EXECUTED:
+				messages.info(request, "La venta ya está ejecutada.")
 				return redirect("ventas:detail", pk=sale.pk)
 			if sale.status not in allowed_from:
-				messages.error(request, "Solo se puede confirmar desde estado reservado o pedido.")
+				messages.error(request, "Solo se puede ejecutar desde proforma, reserva o importación.")
 				return redirect("ventas:detail", pk=sale.pk)
 			if sale.status == Sale.STATUS_RESERVED:
 				insufficient_stock = []
@@ -574,7 +516,7 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 				if insufficient_stock:
 					messages.error(
 						request,
-						"No se puede confirmar desde reserva: stock insuficiente en " + ", ".join(insufficient_stock[:3])
+						"No se puede ejecutar desde reserva: stock insuficiente en " + ", ".join(insufficient_stock[:3])
 						+ ("." if len(insufficient_stock) <= 3 else ", ..."),
 					)
 					return redirect("ventas:detail", pk=sale.pk)
@@ -589,11 +531,11 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 				if missing_reservation:
 					messages.error(
 						request,
-						"No se puede confirmar: la reserva no cubre la venta en " + ", ".join(missing_reservation[:3])
+						"No se puede ejecutar: la reserva no cubre la venta en " + ", ".join(missing_reservation[:3])
 						+ ("." if len(missing_reservation) <= 3 else ", ..."),
 					)
 					return redirect("ventas:detail", pk=sale.pk)
-			if sale.status == Sale.STATUS_ORDERED:
+			if sale.status in {Sale.STATUS_PROFORMA, Sale.STATUS_ORDERED}:
 				insufficient_stock = []
 				for detail in sale.saledetail_set.select_related("product"):
 					available = detail.product.available_stock
@@ -604,50 +546,38 @@ class SaleStatusTransitionView(SalesAccessMixin, View):
 				if insufficient_stock:
 					messages.error(
 						request,
-						"No se puede confirmar el pedido: stock insuficiente en " + ", ".join(insufficient_stock[:3])
+						"No se puede ejecutar: stock insuficiente en " + ", ".join(insufficient_stock[:3])
 						+ ("." if len(insufficient_stock) <= 3 else ", ..."),
 					)
 					return redirect("ventas:detail", pk=sale.pk)
-			sale.status = Sale.STATUS_CONFIRMED_FLOW
+			sale.apply_inventory_output()
+			sale.status = Sale.STATUS_EXECUTED
 			sale.save(update_fields=["status", "updated_at"])
-			messages.success(request, "Venta CONFIRMADA. Pendiente de entrega.")
+			messages.success(request, "Venta EJECUTADA. Stock descontado.")
 
-		elif action == "deliver":
-			if sale.status != Sale.STATUS_CONFIRMED_FLOW:
-				messages.error(request, "Solo se puede entregar una venta confirmada (flujo nuevo).")
+		elif action == "revert":
+			if sale.status not in {Sale.STATUS_RESERVED, Sale.STATUS_ORDERED}:
+				messages.error(request, "Solo una reserva o importación puede volver a proforma.")
 				return redirect("ventas:detail", pk=sale.pk)
-			from caja.models import CashBox
-			try:
-				CashBox.validate_day_open(timezone.now())
-				sale.apply_inventory_output()
-			except ValidationError as exc:
-				messages.error(request, str(exc))
-				return redirect("ventas:detail", pk=sale.pk)
-			sale.status = Sale.STATUS_DELIVERED_FLOW
-			sale.delivered_at = timezone.now()
-			sale.delivered_by = request.user
-			sale.save(update_fields=["status", "delivered_at", "delivered_by", "updated_at"])
-			messages.success(request, "Entrega registrada. Stock físico descontado.")
+			if sale.status == Sale.STATUS_RESERVED:
+				sale.release_reservation()
+			sale.status = Sale.STATUS_PROFORMA
+			sale.save(update_fields=["status", "updated_at"])
+			messages.success(request, "Venta devuelta a PROFORMA.")
 
 		elif action == "cancel":
-			cancelable_from = {
-				Sale.STATUS_DRAFT, Sale.STATUS_PROFORMA,
-				Sale.STATUS_RESERVED, Sale.STATUS_ORDERED,
-				Sale.STATUS_CONFIRMED_FLOW, Sale.STATUS_DELIVERED_FLOW,
-			}
-			if sale.status not in cancelable_from:
-				messages.error(request, "Esta venta ya está cancelada o no puede cancelarse.")
+			if sale.status != Sale.STATUS_EXECUTED:
+				messages.error(request, "Solo una venta ejecutada puede anularse.")
 				return redirect("ventas:detail", pk=sale.pk)
-			if sale.status in {Sale.STATUS_ORDERED, Sale.STATUS_RESERVED}:
-				if sale.status == Sale.STATUS_RESERVED:
-					sale.release_reservation()
-				sale.status = Sale.STATUS_PROFORMA
-				sale.save(update_fields=["status", "updated_at"])
-				messages.success(request, "Reserva/Pedido revertido a PROFORMA.")
-				return redirect("ventas:detail", pk=sale.pk)
-			if sale.status == Sale.STATUS_DELIVERED_FLOW:
-				sale.restore_inventory_output()
-			sale.status = Sale.STATUS_CANCELLED_FLOW
+			sale.restore_inventory_output()
+			payments = list(sale.payments.select_related("method"))
+			if payments:
+				from caja.models import CashBox
+
+				CashBox.validate_day_open(timezone.now())
+				for payment in payments:
+					CashBox.register_sale_payment_reversal(payment)
+			sale.status = Sale.STATUS_CANCELLED
 			sale.canceled_by = request.user
 			sale.canceled_at = timezone.now()
 			sale.save(update_fields=["status", "canceled_by", "canceled_at", "updated_at"])
@@ -667,8 +597,7 @@ class SaleAgingReportView(SalesWriteAccessMixin, View):
 		allowed_statuses = {
 			Sale.STATUS_RESERVED,
 			Sale.STATUS_ORDERED,
-			Sale.STATUS_CONFIRMED_FLOW,
-			Sale.STATUS_CONFIRMED,
+			Sale.STATUS_EXECUTED,
 		}
 
 		sales = (

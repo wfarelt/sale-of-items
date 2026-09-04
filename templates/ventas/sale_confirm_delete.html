@@ -14,11 +14,7 @@
                     <p class="small text-muted mb-0">Total: <strong>Bs {{ object.total|floatformat:2 }}</strong></p>
                 </div>
                 <p class="text-muted">
-                    {% if object.status == 'confirmada' %}
-                        Esta acción restaurará stock y registrará movimientos de reversa en inventario y caja.
-                    {% else %}
-                        Esta proforma no afectó el stock ni caja. Solo cambiará su estado a anulada.
-                    {% endif %}
+                    Esta acción restaurará stock y registrará movimientos de reversa en inventario y caja.
                 </p>
                 <form method="post" class="d-flex gap-2">
                     {% csrf_token %}

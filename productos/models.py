@@ -120,3 +120,17 @@ class Product(models.Model):
 		if self.metros_cuadrados_por_caja and self.metros_cuadrados_por_caja.value:
 			return math.floor(self.stock / self.metros_cuadrados_por_caja.value)
 		return None
+
+	@property
+	def stock_reservado_en_cajas(self):
+		import math
+		if self.metros_cuadrados_por_caja and self.metros_cuadrados_por_caja.value:
+			return math.floor(self.stock_reservado / self.metros_cuadrados_por_caja.value)
+		return None
+
+	@property
+	def available_stock_en_cajas(self):
+		import math
+		if self.metros_cuadrados_por_caja and self.metros_cuadrados_por_caja.value:
+			return math.floor(self.available_stock / self.metros_cuadrados_por_caja.value)
+		return None

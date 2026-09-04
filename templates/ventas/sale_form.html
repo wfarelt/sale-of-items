@@ -644,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function isConfirmedStatus() {
-        return statusSelect && statusSelect.value === 'confirmada';
+        return statusSelect && statusSelect.value === 'executed';
     }
 
     // Returns the ordered list of panel numbers for the current mode
@@ -673,7 +673,11 @@ document.addEventListener('DOMContentLoaded', function () {
             submitButton.innerHTML = '<i class="fas fa-save me-1"></i> Guardar proforma';
             return;
         }
-        submitButton.innerHTML = '<i class="fas fa-check me-1"></i> Confirmar venta';
+        if (statusSelect.value === 'reserved') {
+            submitButton.innerHTML = '<i class="fas fa-bookmark me-1"></i> Guardar reserva';
+            return;
+        }
+        submitButton.innerHTML = '<i class="fas fa-globe me-1"></i> Guardar importación';
     }
 
     function goToStep(step) {

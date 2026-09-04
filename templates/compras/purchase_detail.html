@@ -127,10 +127,8 @@
                     <td>
                         {% if sale.status == 'ordered' %}
                             <span class="badge text-bg-secondary">Pedido</span>
-                        {% elif sale.status == 'confirmed' %}
-                            <span class="badge text-bg-primary">Confirmado</span>
-                        {% elif sale.status == 'delivered' %}
-                            <span class="badge text-bg-success">Entregado</span>
+                        {% elif sale.status == 'executed' %}
+                            <span class="badge text-bg-success">Ejecutada</span>
                         {% elif sale.status == 'cancelled' %}
                             <span class="badge text-bg-danger">Cancelado</span>
                         {% else %}

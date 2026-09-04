@@ -229,7 +229,7 @@ def dashboard_view(request):
 		month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 		sales_month_qs = (
 			Sale.objects.filter(
-				status=Sale.STATUS_CONFIRMED,
+				status=Sale.STATUS_EXECUTED,
 				date__date__gte=month_start.date(),
 			)
 			.annotate(day=TruncDate("date"))
@@ -249,12 +249,10 @@ def dashboard_view(request):
 			monthly_labels.append(f"{spanish_days[day.weekday()]} {day.strftime('%d/%m')}")
 			monthly_amounts.append(round(sales_by_day.get(day, 0), 2))
 
-		receivables_sales = Sale.objects.filter(
-			status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW, Sale.STATUS_DELIVERED_FLOW]
-		).prefetch_related("payments")
+		receivables_sales = Sale.objects.filter(status=Sale.STATUS_EXECUTED).prefetch_related("payments")
 		receivables_total = sum((sale.pending_balance for sale in receivables_sales), Decimal("0.00"))
 		pending_delivery_total = Sale.objects.filter(
-			status__in=[Sale.STATUS_CONFIRMED, Sale.STATUS_CONFIRMED_FLOW],
+			status=Sale.STATUS_EXECUTED,
 			delivered_at__isnull=True,
 		).count()
 
@@ -286,7 +284,7 @@ def dashboard_view(request):
 			{
 				"ventas_hoy": Sale.objects.filter(seller=user, date__date=now.date()).count(),
 				"ventas_mes": Sale.objects.filter(seller=user, date__gte=month_start).count(),
-				"ingresos_hoy": Sale.objects.filter(seller=user, status=Sale.STATUS_CONFIRMED, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
+				"ingresos_hoy": Sale.objects.filter(seller=user, status=Sale.STATUS_EXECUTED, date__date=now.date()).aggregate(Sum("total"))["total__sum"] or 0,
 				"caja_mes": CashBox.objects.filter(date__gte=month_start, type=CashBox.TYPE_INCOME, reference=CashBox.REFERENCE_SALE).aggregate(Sum("amount"))["amount__sum"] or 0,
 				"ultimas_ventas": Sale.objects.filter(seller=user).select_related("client").all()[:5],
 				"clientes_total": Client.objects.count(),

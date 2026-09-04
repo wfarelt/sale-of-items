@@ -127,11 +127,12 @@ class PurchaseUpdateView(InventoryAccessMixin, UpdateView):
 				from ventas.models import Sale
 				backorder_sales = list(self.object.backorder_sales.filter(status=Sale.STATUS_ORDERED))
 				for sale in backorder_sales:
-					sale.status = Sale.STATUS_CONFIRMED_FLOW
+					sale.apply_inventory_output()
+					sale.status = Sale.STATUS_EXECUTED
 					sale.save(update_fields=["status", "updated_at"])
 				if backorder_sales:
 					names = ", ".join(f"Pedido #{s.pk}" for s in backorder_sales)
-					messages.success(request, f"Ventas confirmadas automáticamente al recibir la compra: {names}.")
+					messages.success(request, f"Ventas ejecutadas automáticamente al recibir la compra: {names}.")
 
 			messages.success(request, "Compra actualizada exitosamente.")
 			return redirect(self.success_url)

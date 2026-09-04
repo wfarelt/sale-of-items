@@ -96,8 +96,8 @@
   </div>
   <div class="header-doc">
     <div class="doc-title">
-      {% if sale.status == 'confirmada' or sale.status == 'confirmed' %}{% if is_almacen_user %}Nota de Entrega{% else %}Comprobante de Venta{% endif %}
-      {% elif sale.status == 'anulada' or sale.status == 'canceled' or sale.status == 'cancelled' %}Comprobante Anulado
+      {% if sale.status == 'executed' %}{% if is_almacen_user %}Nota de Entrega{% else %}Comprobante de Venta{% endif %}
+      {% elif sale.status == 'cancelled' %}Comprobante Anulado
       {% else %}{{ sale.status|sale_status_es }}{% endif %}
     </div>
     <div class="doc-number">#{{ sale.id }}</div>
@@ -108,7 +108,7 @@
       <!-- Fecha de venta -->
        <div class="company-detail">{{ sale.date|date:"d/m/Y H:i" }}</div>
     {% endif %}
-    {% if sale.status == 'proforma' or sale.status == 'draft' %}
+    {% if sale.status == 'proforma' %}
       <div class="company-detail">Valida hasta: {{ sale.due_date|date:"d/m/Y" }}</div>
     {% endif %}
   </div>
@@ -186,7 +186,7 @@
   {% endif %}
 </table>
 
-{% if sale.status == 'anulada' or sale.status == 'canceled' or sale.status == 'cancelled' %}
+{% if sale.status == 'cancelled' %}
 <p style="font-size:9pt;color:#7a1c1c;border:1px solid #c0706a;padding:6px 10px;border-radius:3px;">
   <strong>Venta anulada</strong> por {{ sale.canceled_by.get_full_name|default:sale.canceled_by.username }}
   el {{ sale.canceled_at|date:"d/m/Y H:i" }}.

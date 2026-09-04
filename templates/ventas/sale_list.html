@@ -72,13 +72,11 @@
                         <span class="badge {{ sale.status|sale_status_badge_class }}">{{ sale.status|sale_status_es }}</span>
                     </td>
                     <td>
-                        {% if sale.delivered_at %}
-                            <span class="badge text-bg-primary">Entregada</span>
+                        {% if sale.delivery_status == 'DELIVERED' %}
+                            <span class="badge {{ sale.delivery_status|delivery_status_badge_class }}">{{ sale.delivery_status|delivery_status_es }}</span>
                             <small class="text-muted d-block">{{ sale.delivered_at|date:'d/m/Y H:i' }}</small>
-                        {% elif sale.status == 'confirmada' or sale.status == 'confirmed' %}
-                            <span class="badge text-bg-secondary">Pendiente</span>
                         {% else %}
-                            <span class="text-muted">-</span>
+                            <span class="badge {{ sale.delivery_status|delivery_status_badge_class }}">{{ sale.delivery_status|delivery_status_es }}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -92,18 +90,12 @@
                         {% if sale.status == 'proforma' and user.is_admin or sale.status == 'proforma' and user.is_vendedor %}
                             <a href="{% url 'ventas:update' sale.pk %}" class="btn btn-sm btn-outline-warning"><i class="fas fa-pen"></i></a>
                         {% endif %}
-                        {% if user.is_admin and sale.status != 'anulada' %}
+                        {% if user.is_admin and sale.status == 'executed' %}
                             <a href="{% url 'ventas:delete' sale.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban"></i></a>
                         {% endif %}
-                        {% if not sale.delivered_at and user.is_almacen or not sale.delivered_at and user.is_admin %}
-                            {% if sale.status == 'confirmada' %}
-                            <a href="{% url 'ventas:delivery' sale.pk %}" class="btn btn-sm btn-outline-primary" title="Registrar entrega"><i class="fas fa-truck-ramp-box"></i></a>
-                            {% elif sale.status == 'confirmed' %}
-                            <form method="post" action="{% url 'ventas:status_transition' sale.pk %}" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="deliver">
-                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Registrar entrega"><i class="fas fa-truck-ramp-box"></i></button>
-                            </form>
+                        {% if sale.delivery_status == 'PENDING' and user.is_almacen or sale.delivery_status == 'PENDING' and user.is_admin %}
+                            {% if sale.status == 'executed' %}
+                                <a href="{% url 'ventas:delivery' sale.pk %}" class="btn btn-sm btn-outline-primary" title="Registrar entrega"><i class="fas fa-truck-ramp-box"></i></a>
                             {% endif %}
                         {% endif %}
                         {% if sale.delivered_at and user.is_almacen %}

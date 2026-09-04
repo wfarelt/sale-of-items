@@ -30,20 +30,26 @@ def payment_status_badge_class(value):
     return "text-bg-secondary"
 
 
+@register.filter(name="delivery_status_es")
+def delivery_status_es(value):
+    status = _normalize_status(value)
+    return {"DELIVERED": "Entregada", "PENDING": "Pendiente"}.get(status, value)
+
+
+@register.filter(name="delivery_status_badge_class")
+def delivery_status_badge_class(value):
+    return "text-bg-primary" if _normalize_status(value) == "DELIVERED" else "text-bg-secondary"
+
+
 @register.filter(name="sale_status_es")
 def sale_status_es(value):
     status = _normalize_status(value)
     mapping = {
         "PROFORMA": "Proforma",
-        "DRAFT": "Proforma",
-        "CONFIRMADA": "Confirmada",
-        "CONFIRMED": "Confirmada",
-        "ANULADA": "Anulada",
-        "CANCELED": "Anulada",
+        "EXECUTED": "Ejecutada",
         "CANCELLED": "Anulada",
         "RESERVED": "Reservada",
         "ORDERED": "Pedido",
-        "DELIVERED": "Entregada",
     }
     return mapping.get(status, value)
 
@@ -51,16 +57,14 @@ def sale_status_es(value):
 @register.filter(name="sale_status_badge_class")
 def sale_status_badge_class(value):
     status = _normalize_status(value)
-    if status in {"CONFIRMADA", "CONFIRMED"}:
+    if status == "EXECUTED":
         return "text-bg-success"
-    if status in {"ANULADA", "CANCELED", "CANCELLED"}:
+    if status == "CANCELLED":
         return "text-bg-danger"
-    if status in {"PROFORMA", "DRAFT"}:
+    if status == "PROFORMA":
         return "text-bg-warning text-dark"
     if status == "RESERVED":
         return "text-bg-info text-dark"
     if status == "ORDERED":
         return "text-bg-secondary"
-    if status == "DELIVERED":
-        return "text-bg-primary"
     return "text-bg-secondary"

@@ -10,11 +10,8 @@
         <p class="text-muted mb-0">Detalle de egreso</p>
     </div>
     <div class="d-flex gap-2">
-        {% if sale.status == 'confirmada' and not sale.delivered_at and user.is_almacen or sale.status == 'confirmada' and not sale.delivered_at and user.is_admin %}
-            <a href="{% url 'ventas:delivery' sale.id %}" class="btn btn-outline-primary"><i class="fas fa-truck-ramp-box me-1"></i> Registrar entrega</a>
-        {% endif %}
         {# ── New-flow transition buttons ── #}
-        {% if sale.status == 'draft' or sale.status == 'proforma' %}
+        {% if sale.status == 'proforma' %}
             {% if user.is_admin or user.is_vendedor %}
                 <a href="{% url 'ventas:update' sale.id %}" class="btn btn-outline-primary"><i class="fas fa-pen me-1"></i> Editar</a>
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
@@ -23,49 +20,40 @@
                 </form>
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
                     {% csrf_token %}<input type="hidden" name="action" value="order">
-                    <!-- Registrar como pedido de Importación -->
                     <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-globe me-1"></i> Importación</button>
+                </form>
+                <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
+                    {% csrf_token %}<input type="hidden" name="action" value="execute">
+                    <button type="submit" class="btn btn-outline-success"><i class="fas fa-check me-1"></i> Ejecutar venta</button>
                 </form>
             {% endif %}
         {% elif sale.status == 'reserved' or sale.status == 'ordered' %}
             {% if user.is_admin or user.is_vendedor %}
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
-                    {% csrf_token %}<input type="hidden" name="action" value="confirm">
-                    <button type="submit" class="btn btn-outline-success"><i class="fas fa-check me-1"></i> Confirmar venta</button>
-                </form>                {% if not sale.backorder_purchase %}
+                    {% csrf_token %}<input type="hidden" name="action" value="execute">
+                    <button type="submit" class="btn btn-outline-success"><i class="fas fa-check me-1"></i> Ejecutar venta</button>
+                </form>
+                <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
+                    {% csrf_token %}<input type="hidden" name="action" value="revert">
+                    <button type="submit" class="btn btn-outline-secondary" onclick="return confirm('¿Volver esta venta a proforma?')"><i class="fas fa-rotate-left me-1"></i> Volver a proforma</button>
+                </form>
+                {% if sale.status == 'ordered' and not sale.backorder_purchase %}
                     <form method="post" action="{% url 'ventas:create_purchase' sale.id %}" class="d-inline">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline-warning"><i class="fas fa-cart-plus me-1"></i> Crear compra de respaldo</button>
                     </form>
-                {% endif %}            {% endif %}
-            {% if user.is_admin %}
-                <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
-                    {% csrf_token %}<input type="hidden" name="action" value="cancel">
-                    {% if sale.status == 'ordered' or sale.status == 'reserved' %}
-                        <button type="submit" class="btn btn-outline-secondary" onclick="return confirm('¿Volver este registro a estado proforma?')"><i class="fas fa-rotate-left me-1"></i> Volver a proforma</button>
-                    {% else %}
-                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Cancelar esta venta?')"><i class="fas fa-ban me-1"></i> Cancelar</button>
-                    {% endif %}
-                </form>
+                {% endif %}
             {% endif %}
-        {% elif sale.status == 'confirmed' %}
+        {% elif sale.status == 'executed' %}
             {% if user.is_admin or user.is_almacen %}
-                <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
-                    {% csrf_token %}<input type="hidden" name="action" value="deliver">
-                    <button type="submit" class="btn btn-outline-primary"><i class="fas fa-truck-ramp-box me-1"></i> Registrar entrega</button>
-                </form>
+                {% if sale.delivery_status == 'PENDING' %}
+                    <a href="{% url 'ventas:delivery' sale.id %}" class="btn btn-outline-primary"><i class="fas fa-truck-ramp-box me-1"></i> Registrar entrega</a>
+                {% endif %}
             {% endif %}
             {% if user.is_admin %}
                 <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
                     {% csrf_token %}<input type="hidden" name="action" value="cancel">
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Cancelar esta venta?')"><i class="fas fa-ban me-1"></i> Cancelar</button>
-                </form>
-            {% endif %}
-        {% elif sale.status == 'delivered' %}
-            {% if user.is_admin %}
-                <form method="post" action="{% url 'ventas:status_transition' sale.id %}" class="d-inline">
-                    {% csrf_token %}<input type="hidden" name="action" value="cancel">
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Cancelar y revertir la entrega de esta venta?')"><i class="fas fa-undo me-1"></i> Revertir y cancelar</button>
+                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Anular esta venta y revertir stock y caja?')"><i class="fas fa-ban me-1"></i> Anular venta</button>
                 </form>
             {% endif %}
         {% endif %}
@@ -108,13 +96,7 @@
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Entrega</small>
             <div class="fw-semibold">
-                {% if sale.delivered_at %}
-                    Entregada
-                {% elif sale.status == 'confirmada' or sale.status == 'confirmed' %}
-                    Pendiente
-                {% else %}
-                    -
-                {% endif %}
+                {{ sale.delivery_status|delivery_status_es }}
             </div>
             {% if sale.delivered_at %}
                 <small class="text-muted d-block">{{ sale.delivered_at|date:'d/m/Y H:i' }}</small>
@@ -129,7 +111,7 @@
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Recibido por</small><div class="fw-semibold">{{ sale.received_by_name|default:'-' }}</div><small class="text-muted d-block">Doc: {{ sale.received_by_doc|default:'-' }}</small></div></div>
     </div>
     {% endif %}
-    {% if sale.status == 'anulada' or sale.status == 'cancelled' %}
+    {% if sale.status == 'cancelled' %}
     <div class="col-12 col-md-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted d-block">Anulada por</small><div class="fw-semibold">{% if sale.canceled_by %}{{ sale.canceled_by.get_full_name|default:sale.canceled_by.username }}{% else %}-{% endif %}</div></div></div>
     </div>

@@ -62,33 +62,31 @@ class Sale(models.Model):
 	)
 
 	STATUS_PROFORMA = "proforma"
-	STATUS_DRAFT = STATUS_PROFORMA
 	STATUS_RESERVED = "reserved"
 	STATUS_ORDERED = "ordered"
-	STATUS_CONFIRMED_FLOW = "confirmed"
-	STATUS_DELIVERED_FLOW = "delivered"
-	STATUS_CANCELLED_FLOW = "cancelled"
-
-	STATUS_CONFIRMED = "confirmada"
-	STATUS_CANCELED = "anulada"
+	STATUS_EXECUTED = "executed"
+	STATUS_CANCELLED = "cancelled"
 
 	# Legacy values kept for data normalization.
 	STATUS_LEGACY_DRAFT = "draft"
+	STATUS_LEGACY_CONFIRMED = "confirmada"
+	STATUS_LEGACY_CONFIRMED_FLOW = "confirmed"
+	STATUS_LEGACY_DELIVERED = "delivered"
+	STATUS_LEGACY_CANCELED_ES = "anulada"
 	STATUS_LEGACY_CANCELED_US = "canceled"
 	STATUS_CHOICES = (
 		(STATUS_PROFORMA, "Proforma"),
 		(STATUS_RESERVED, "Reservada"),
 		(STATUS_ORDERED, "Pedido"),
-		(STATUS_CONFIRMED_FLOW, "CONFIRMED - Venta aceptada"),
-		(STATUS_DELIVERED_FLOW, "DELIVERED - Entregado"),
-		(STATUS_CANCELLED_FLOW, "CANCELLED - Cancelado"),
-		(STATUS_CONFIRMED, "Confirmada"),
-		(STATUS_CANCELED, "Anulada"),
+		(STATUS_EXECUTED, "Ejecutada"),
+		(STATUS_CANCELLED, "Cancelada"),
 	)
 
 	PAYMENT_STATUS_PENDING = "PENDING"
 	PAYMENT_STATUS_PARTIAL = "PARTIAL"
 	PAYMENT_STATUS_PAID = "PAID"
+	DELIVERY_STATUS_PENDING = "PENDING"
+	DELIVERY_STATUS_DELIVERED = "DELIVERED"
 
 	date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
 	client = models.ForeignKey("clientes.Client", on_delete=models.PROTECT, verbose_name="Cliente")
@@ -111,7 +109,7 @@ class Sale(models.Model):
 	status = models.CharField(
 		max_length=20,
 		choices=STATUS_CHOICES,
-		default=STATUS_CONFIRMED,
+		default=STATUS_PROFORMA,
 		verbose_name="Estado",
 	)
 	canceled_by = models.ForeignKey(
@@ -164,7 +162,11 @@ class Sale(models.Model):
 	def normalize_status_value(cls, value):
 		mapping = {
 			cls.STATUS_LEGACY_DRAFT: cls.STATUS_PROFORMA,
-			cls.STATUS_LEGACY_CANCELED_US: cls.STATUS_CANCELLED_FLOW,
+			cls.STATUS_LEGACY_CONFIRMED: cls.STATUS_EXECUTED,
+			cls.STATUS_LEGACY_CONFIRMED_FLOW: cls.STATUS_EXECUTED,
+			cls.STATUS_LEGACY_DELIVERED: cls.STATUS_EXECUTED,
+			cls.STATUS_LEGACY_CANCELED_ES: cls.STATUS_CANCELLED,
+			cls.STATUS_LEGACY_CANCELED_US: cls.STATUS_CANCELLED,
 		}
 		return mapping.get(value, value)
 
@@ -219,13 +221,19 @@ class Sale(models.Model):
 			return self.PAYMENT_STATUS_PARTIAL
 		return self.PAYMENT_STATUS_PAID
 
-	def is_confirmed_state(self):
+	@property
+	def delivery_status(self):
+		if self.delivered_at:
+			return self.DELIVERY_STATUS_DELIVERED
+		return self.DELIVERY_STATUS_PENDING
+
+	def is_executed_state(self):
 		status = self.normalize_status_value(self.status)
-		return status in {self.STATUS_CONFIRMED, self.STATUS_CONFIRMED_FLOW}
+		return status == self.STATUS_EXECUTED
 
 	def is_canceled_state(self):
 		status = self.normalize_status_value(self.status)
-		return status in {self.STATUS_CANCELED, self.STATUS_CANCELLED_FLOW}
+		return status == self.STATUS_CANCELLED
 
 	def register_payment(self, *, method_code, amount, recorded_by=None, paid_at=None, reference="", notes=""):
 		if amount is None or amount <= Decimal("0.00"):
