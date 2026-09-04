@@ -391,34 +391,74 @@ class SaleDeliveryView(SalesDeliveryAccessMixin, UpdateView):
 		return redirect(self.get_success_url())
 
 
-class SalePDFView(SalesAccessMixin, View):
-	def get(self, request, pk, *args, **kwargs):
-		sale = Sale.objects.select_related("client", "seller", "delivered_by", "commercial_condition").get(pk=pk)
+class SalePDFBaseView(SalesAccessMixin, View):
+	template_name = ""
+	document_suffix = ""
+
+	def get_sale(self, pk):
+		return Sale.objects.select_related("client", "seller", "delivered_by", "commercial_condition").get(pk=pk)
+
+	def get_context(self, request, sale):
 		details = list(sale.saledetail_set.select_related("product").all())
-		payments = list(sale.payments.select_related("method").all())
-		total_discount = sum((detail.discount or Decimal("0.00")) for detail in details)
-		current_user_name = request.user.get_full_name() or request.user.username
-		context = {
+		return {
 			"sale": sale,
 			"details": details,
-			"payments": payments,
-			"total_discount": total_discount,
+			"total_discount": sum((detail.discount or Decimal("0.00")) for detail in details),
 			"company": Company.get_solo(),
 			"now": timezone.localtime(),
-			"show_prices": not request.user.is_almacen,
-			"is_almacen_user": request.user.is_almacen,
-			"current_user_name": current_user_name,
+			"current_user_name": request.user.get_full_name() or request.user.username,
 		}
+
+	def get_filename(self, sale):
 		year = timezone.localtime().year
 		sale_number = f"{year}{sale.id:03d}"
-		client_name = sale.client.name.upper() if getattr(sale, 'client', None) and sale.client.name else "CLIENTE"
-		# Remove characters not allowed in Windows filenames
-		for ch in '\\/:*?"<>|':
-			client_name = client_name.replace(ch, '')
-		client_name = client_name.strip()
-		suffix = " (ENTREGA)" if request.user.is_almacen else ""
-		filename = f"{sale_number} - {client_name}{suffix}.pdf"
-		return render_to_pdf("ventas/sale_pdf.html", context, filename=filename, base_url=request.build_absolute_uri("/"))
+		client_name = sale.client.name.upper() if sale.client.name else "CLIENTE"
+		for character in '\\/:*?"<>|':
+			client_name = client_name.replace(character, "")
+		return f"{sale_number} - {client_name} {self.document_suffix}.pdf"
+
+	def get(self, request, pk, *args, **kwargs):
+		sale = self.get_sale(pk)
+		return render_to_pdf(
+			self.template_name,
+			self.get_context(request, sale),
+			filename=self.get_filename(sale),
+			base_url=request.build_absolute_uri("/"),
+		)
+
+
+class SaleSalePDFView(SalePDFBaseView):
+	template_name = "ventas/sale_pdf_venta.html"
+	document_suffix = "(VENTA)"
+
+	def test_func(self):
+		return self.request.user.is_admin
+
+
+class SaleDeliveryPDFView(SalePDFBaseView):
+	template_name = "ventas/sale_pdf_entrega.html"
+	document_suffix = "(ENTREGA)"
+
+	def test_func(self):
+		return self.request.user.is_admin or self.request.user.is_almacen
+
+	def get(self, request, pk, *args, **kwargs):
+		sale = self.get_sale(pk)
+		if not sale.delivered_at:
+			messages.error(request, "La nota de entrega solo está disponible después de registrar la entrega.")
+			return redirect("ventas:detail", pk=sale.pk)
+		return render_to_pdf(
+			self.template_name,
+			self.get_context(request, sale),
+			filename=self.get_filename(sale),
+			base_url=request.build_absolute_uri("/"),
+		)
+
+
+class SalePDFView(SaleSalePDFView):
+	"""Legacy route kept for existing links; it renders the sale note."""
+
+	pass
 
 
 class SaleRegisterPaymentView(SalesWriteAccessMixin, View):

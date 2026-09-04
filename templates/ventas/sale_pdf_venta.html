@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Nota de venta #{{ sale.id }}</title>
+<style>
+@page { size: A4; margin: 18mm 15mm 22mm; @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 8pt; color: #777; } }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #222; } .header { display:flex; justify-content:space-between; border-bottom:1px solid #aaa; padding-bottom:10px; margin-bottom:14px; } .logo { max-height:70px; max-width:190px; } .company { font-size:14pt; font-weight:bold; } .meta { color:#666; font-size:8pt; line-height:1.6; } .right { text-align:right; } h1 { font-size:13pt; margin:0; } .number { font-size:18pt; font-weight:bold; } .info { display:flex; margin-bottom:14px; } .info div { flex:1; padding:4px 10px; } .label { color:#888; font-size:7pt; text-transform:uppercase; } table { width:100%; border-collapse:collapse; } th { text-align:left; border-bottom:2px solid #555; font-size:8pt; padding:5px; } td { border-bottom:1px solid #ddd; padding:5px; } .right-cell { text-align:right; } .center { text-align:center; } tfoot td { font-weight:bold; border-top:1px solid #777; } .footer { margin-top:20px; border-top:1px solid #ddd; padding-top:6px; font-size:8pt; color:#777; text-align:center; }
+</style>
+</head>
+<body>
+<div class="header"><div>{% if company.logo %}<img class="logo" src="{{ company.logo.url }}" alt="{{ company.name }}">{% else %}<div class="company">{{ company.name }}</div>{% endif %}<div class="meta">{{ company.address|default:"" }}{% if company.phone %}<br>Tel: {{ company.phone }}{% endif %}</div></div><div class="right"><h1>NOTA DE VENTA</h1><div class="number">#{{ sale.id }}</div><div class="meta">Fecha de venta: {{ sale.date|date:"d/m/Y H:i" }}</div></div></div>
+<div class="info"><div><div class="label">Cliente</div><strong>{{ sale.client.name }}</strong></div><div><div class="label">NIT/CI</div><strong>{{ sale.client.nit_ci|default:"-" }}</strong></div><div><div class="label">Vendedor</div><strong>{{ sale.seller.get_full_name|default:sale.seller.username|default:"-" }}</strong></div></div>
+<table><thead><tr><th>#</th><th>Producto</th><th class="center">Cantidad</th><th class="center">Cajas</th><th class="right-cell">Precio</th><th class="right-cell">Descuento</th><th class="right-cell">Subtotal</th></tr></thead><tbody>{% for detail in details %}<tr><td>{{ forloop.counter }}</td><td>{{ detail.product.name }}</td><td class="center">{{ detail.quantity|floatformat:2 }}</td><td class="center">{{ detail.cajas|default:"-" }}</td><td class="right-cell">{{ detail.price|floatformat:2 }}</td><td class="right-cell">{{ detail.discount|floatformat:2 }}</td><td class="right-cell">{{ detail.subtotal|floatformat:2 }}</td></tr>{% endfor %}</tbody><tfoot><tr><td colspan="6" class="right-cell">TOTAL (Bs)</td><td class="right-cell">{{ sale.total|floatformat:2 }}</td></tr></tfoot></table>
+<div class="footer">{{ company.name }} | Generado el {{ now|date:"d/m/Y H:i" }}</div>
+</body>
+</html>

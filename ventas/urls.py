@@ -8,7 +8,9 @@ from .views import (
 	SaleDeliveryView,
 	SaleDetailView,
 	SaleListView,
+	SaleDeliveryPDFView,
 	SalePDFView,
+	SaleSalePDFView,
 	SaleRegisterPaymentView,
 	SaleStatusTransitionView,
 	SaleUpdateView,
@@ -27,5 +29,7 @@ urlpatterns = [
 	path("<int:pk>/transicion/", SaleStatusTransitionView.as_view(), name="status_transition"),
 	path("<int:pk>/crear-compra/", SaleCreatePurchaseView.as_view(), name="create_purchase"),
 	path("<int:pk>/eliminar/", SaleDeleteView.as_view(), name="delete"),
+	path("<int:pk>/pdf/venta/", SaleSalePDFView.as_view(), name="pdf_venta"),
+	path("<int:pk>/pdf/entrega/", SaleDeliveryPDFView.as_view(), name="pdf_entrega"),
 	path("<int:pk>/pdf/", SalePDFView.as_view(), name="pdf"),
 ]

@@ -99,7 +99,7 @@
                             {% endif %}
                         {% endif %}
                         {% if sale.delivered_at and user.is_almacen %}
-                            <a href="{% url 'ventas:pdf' sale.pk %}" class="btn btn-sm btn-outline-secondary" title="Reimprimir nota de entrega" target="_blank"><i class="fas fa-print"></i></a>
+                            <a href="{% url 'ventas:pdf_entrega' sale.pk %}" class="btn btn-sm btn-outline-secondary" title="Reimprimir nota de entrega" target="_blank"><i class="fas fa-print"></i></a>
                         {% endif %}
                     </td>
                 </tr>
