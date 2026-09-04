@@ -24,8 +24,9 @@ class SaleForm(forms.ModelForm):
 		self.fields["payment_type"].required = False
 		self.fields["status"].choices = [
 			(Sale.STATUS_PROFORMA, "Proforma"),
-			(Sale.STATUS_RESERVED, "Reservada"),
-			(Sale.STATUS_ORDERED, "Pedido"),
+			(Sale.STATUS_RESERVED, "Reserva"),
+			(Sale.STATUS_ORDERED, "Importación"),
+			(Sale.STATUS_EXECUTED, "Ejecutada"),
 		]
 		if not self.instance.pk:
 			self.fields["status"].initial = Sale.STATUS_PROFORMA
@@ -49,6 +50,9 @@ class SaleForm(forms.ModelForm):
 		condition = cleaned_data.get("commercial_condition")
 		payment_type = cleaned_data.get("payment_type")
 		upfront_amount = cleaned_data.get("upfront_amount")
+
+		if status == Sale.STATUS_EXECUTED and condition and condition.is_cash_sale and upfront_amount is None:
+			self.add_error("upfront_amount", "En una venta ejecutada al contado debes registrar un pago inicial.")
 
 		if upfront_amount is not None and not payment_type:
 			self.add_error("payment_type", "Selecciona método de pago para registrar el pago inicial.")

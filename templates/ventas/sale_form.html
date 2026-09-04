@@ -192,18 +192,18 @@
                                         {% if formset.non_form_errors %}
                                             <div class="alert alert-danger small mt-2 mb-0">{{ formset.non_form_errors|striptags }}</div>
                                         {% endif %}
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                                            <button type="button" id="btn-step1-next" class="btn btn-dark">
+                                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div id="step1-error" class="alert alert-danger d-none mb-3"></div>
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'ventas:list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                            <button type="button" id="btn-step1-next" class="btn btn-dark">
-                                Siguiente <i class="fas fa-chevron-right ms-1"></i>
-                            </button>
-                        </div>
                     </div>
 
                     <!-- ======== PASO 2: Cliente ======== -->
@@ -643,25 +643,25 @@ document.addEventListener('DOMContentLoaded', function () {
         if (step2ProformaButton) step2ProformaButton.disabled = disabled;
     }
 
-    function isConfirmedStatus() {
+    function isExecutedStatus() {
         return statusSelect && statusSelect.value === 'executed';
     }
 
     // Returns the ordered list of panel numbers for the current mode
     function getFlow() {
-        return isConfirmedStatus() ? [1, 2, 3, 4, 5] : [1, 2, 3, 5];
+        return isExecutedStatus() ? [1, 2, 3, 4, 5] : [1, 2, 3, 5];
     }
 
     function updateStepper() {
-        const confirmed = isConfirmedStatus();
+        const executed = isExecutedStatus();
         const pagoPill = document.getElementById('pill-pago');
         const pagoSep  = document.getElementById('stepper-sep-pago');
         const confirmNum = document.getElementById('confirm-step-number');
         const btn3Next = document.getElementById('btn-step3-next');
-        if (pagoPill)   pagoPill.classList.toggle('d-none', !confirmed);
-        if (pagoSep)    pagoSep.classList.toggle('d-none', !confirmed);
-        if (confirmNum) confirmNum.textContent = confirmed ? '5' : '4';
-        if (btn3Next)   btn3Next.innerHTML = confirmed
+        if (pagoPill)   pagoPill.classList.toggle('d-none', !executed);
+        if (pagoSep)    pagoSep.classList.toggle('d-none', !executed);
+        if (confirmNum) confirmNum.textContent = executed ? '5' : '4';
+        if (btn3Next)   btn3Next.innerHTML = executed
             ? 'Siguiente <i class="fas fa-chevron-right ms-1"></i>'
             : 'Siguiente <i class="fas fa-chevron-right ms-1"></i>';
         updateSubmitButtonLabel();
@@ -677,7 +677,11 @@ document.addEventListener('DOMContentLoaded', function () {
             submitButton.innerHTML = '<i class="fas fa-bookmark me-1"></i> Guardar reserva';
             return;
         }
-        submitButton.innerHTML = '<i class="fas fa-globe me-1"></i> Guardar importación';
+        if (statusSelect.value === 'ordered') {
+            submitButton.innerHTML = '<i class="fas fa-globe me-1"></i> Guardar importación';
+            return;
+        }
+        submitButton.innerHTML = '<i class="fas fa-check me-1"></i> Ejecutar venta';
     }
 
     function goToStep(step) {
@@ -797,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         errorBox.classList.add('d-none');
-        if (isConfirmedStatus()) {
+        if (isExecutedStatus()) {
             updatePaymentStepSummary();
             goToStep(4);
         } else {
@@ -844,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* Step 5 → 4 (confirmada) or 3 (proforma/others) */
     document.getElementById('btn-step5-prev').addEventListener('click', function () {
-        if (isConfirmedStatus()) {
+        if (isExecutedStatus()) {
             updatePaymentStepSummary();
             goToStep(4);
             return;
@@ -1232,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function refreshValidation() {
         const okDup   = validateDuplicates();
         const okStock = validateStock();
-        const canSubmit = okDup && (!isConfirmedStatus() || okStock);
+        const canSubmit = okDup && (!isExecutedStatus() || okStock);
         if (submitButton) {
             submitButton.disabled = !canSubmit;
         }
@@ -1530,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const okDup = validateDuplicates();
         const okStock = validateStock();
-        const canSubmit = okDup && (!isConfirmedStatus() || okStock);
+        const canSubmit = okDup && (!isExecutedStatus() || okStock);
 
         if (submitButton) {
             submitButton.disabled = !canSubmit;
@@ -1543,8 +1547,8 @@ document.addEventListener('DOMContentLoaded', function () {
             let message = '';
             if (!okDup) {
                 message = 'No se puede guardar: hay productos repetidos en el detalle.';
-            } else if (isConfirmedStatus() && !okStock) {
-                message = 'No se puede confirmar: una o más cantidades superan el stock disponible. Cambia a proforma o ajusta cantidades.';
+            } else if (isExecutedStatus() && !okStock) {
+                message = 'No se puede ejecutar: una o más cantidades superan el stock disponible. Cambia a proforma, reserva o importación, o ajusta cantidades.';
             }
 
             if (step1Error && message) {

@@ -5,7 +5,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Sum
+from django.db.models import F, Sum
+from django.db.models.functions import Greatest
 from django.utils import timezone
 
 
@@ -76,10 +77,10 @@ class Sale(models.Model):
 	STATUS_LEGACY_CANCELED_US = "canceled"
 	STATUS_CHOICES = (
 		(STATUS_PROFORMA, "Proforma"),
-		(STATUS_RESERVED, "Reservada"),
-		(STATUS_ORDERED, "Pedido"),
+		(STATUS_RESERVED, "Reserva"),
+		(STATUS_ORDERED, "Importación"),
 		(STATUS_EXECUTED, "Ejecutada"),
-		(STATUS_CANCELLED, "Cancelada"),
+		(STATUS_CANCELLED, "Anulada"),
 	)
 
 	PAYMENT_STATUS_PENDING = "PENDING"
@@ -301,14 +302,19 @@ class Sale(models.Model):
 	def reserve_inventory(self):
 		for detail in self.saledetail_set.select_related("product"):
 			product = detail.product
-			product.stock_reservado += detail.quantity
-			product.save(update_fields=["stock_reservado"])
+			product.__class__.objects.filter(pk=product.pk).update(
+				stock_reservado=F("stock_reservado") + detail.quantity,
+			)
 
 	def release_reservation(self):
 		for detail in self.saledetail_set.select_related("product"):
 			product = detail.product
-			product.stock_reservado = max(product.stock_reservado - detail.quantity, 0)
-			product.save(update_fields=["stock_reservado"])
+			product.__class__.objects.filter(pk=product.pk).update(
+				stock_reservado=Greatest(
+					F("stock_reservado") - detail.quantity,
+					Decimal("0.00"),
+				),
+			)
 
 
 class Payment(models.Model):

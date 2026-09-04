@@ -112,10 +112,34 @@ class SaleCreateView(SalesWriteAccessMixin, CreateView):
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
 				if new_status == Sale.STATUS_RESERVED:
+					insufficient_stock = [
+						detail.product.name
+						for detail in self.object.saledetail_set.select_related("product")
+						if detail.product.available_stock < detail.quantity
+					]
+					if insufficient_stock:
+						form.add_error(None, "No se puede reservar: stock disponible insuficiente en " + ", ".join(insufficient_stock[:3]) + ".")
+						self.object.delete()
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 					self.object.reserve_inventory()
-					messages.success(request, "Venta guardada como RESERVADA. Stock reservado actualizado.")
+					messages.success(request, "Venta guardada como RESERVA. Stock reservado actualizado.")
 				elif new_status == Sale.STATUS_ORDERED:
-					messages.success(request, "Venta guardada como PEDIDO.")
+					messages.success(request, "Venta guardada como IMPORTACIÓN.")
+				elif new_status == Sale.STATUS_EXECUTED:
+					from caja.models import CashBox
+
+					CashBox.validate_day_open(self.object.date)
+					self.object.apply_inventory_output()
+					if upfront_amount is not None:
+						payment = self.object.register_payment(
+							method_code=form.cleaned_data["payment_type"],
+							amount=upfront_amount,
+							recorded_by=request.user,
+							paid_at=self.object.date,
+							notes="Pago inicial registrado al ejecutar la venta",
+						)
+						CashBox.register_sale_payment(payment)
+					messages.success(request, "Venta ejecutada. Stock descontado.")
 				else:
 					messages.success(request, "Proforma guardada exitosamente.")
 
@@ -188,6 +212,17 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 			try:
 				new_status = form.cleaned_data.get("status")
 				upfront_amount = form.cleaned_data.get("upfront_amount")
+				if new_status == Sale.STATUS_RESERVED:
+					insufficient_stock = [
+						form_detail.cleaned_data["product"].name
+						for form_detail in formset.forms
+						if not form_detail.cleaned_data.get("DELETE")
+						and form_detail.cleaned_data.get("product")
+						and form_detail.cleaned_data["product"].available_stock < form_detail.cleaned_data["quantity"]
+					]
+					if insufficient_stock:
+						form.add_error(None, "No se puede reservar: stock disponible insuficiente en " + ", ".join(insufficient_stock[:3]) + ".")
+						return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 				self.object = form.save(commit=False)
 				self.object.save()
 				formset.instance = self.object
@@ -199,7 +234,28 @@ class SaleUpdateView(SalesWriteAccessMixin, UpdateView):
 					form.add_error("upfront_amount", "El pago inicial no puede superar el total de la venta.")
 					return render(request, self.template_name, self.get_context_data(form=form, formset=formset))
 
-				messages.success(request, "Proforma actualizada exitosamente.")
+				if new_status == Sale.STATUS_RESERVED:
+					self.object.reserve_inventory()
+					messages.success(request, "Venta guardada como RESERVA. Stock reservado actualizado.")
+				elif new_status == Sale.STATUS_ORDERED:
+					messages.success(request, "Venta guardada como IMPORTACIÓN.")
+				elif new_status == Sale.STATUS_EXECUTED:
+					from caja.models import CashBox
+
+					CashBox.validate_day_open(self.object.date)
+					self.object.apply_inventory_output()
+					if upfront_amount is not None:
+						payment = self.object.register_payment(
+							method_code=form.cleaned_data["payment_type"],
+							amount=upfront_amount,
+							recorded_by=request.user,
+							paid_at=self.object.date,
+							notes="Pago inicial registrado al ejecutar la venta",
+						)
+						CashBox.register_sale_payment(payment)
+					messages.success(request, "Venta ejecutada. Stock descontado.")
+				else:
+					messages.success(request, "Proforma actualizada exitosamente.")
 
 				return redirect(self.success_url)
 			except OperationalError as exc:

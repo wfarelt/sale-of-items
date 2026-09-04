@@ -48,8 +48,8 @@ def sale_status_es(value):
         "PROFORMA": "Proforma",
         "EXECUTED": "Ejecutada",
         "CANCELLED": "Anulada",
-        "RESERVED": "Reservada",
-        "ORDERED": "Pedido",
+        "RESERVED": "Reserva",
+        "ORDERED": "Importación",
     }
     return mapping.get(status, value)
 
