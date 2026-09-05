@@ -2,6 +2,85 @@
 
 {% block title %}Productos{% endblock %}
 
+{% block extra_css %}
+<style>
+    .product-image-preview-trigger {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        cursor: zoom-in;
+    }
+    .product-image-preview {
+        width: 500px;
+        height: 500px;
+        max-width: 100%;
+        max-height: calc(100vh - 270px);
+        object-fit: contain;
+    }
+    .product-image-preview-modal .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 8px;
+    }
+    .product-image-preview-modal .modal-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .product-image-preview-kicker {
+        margin-bottom: .2rem;
+        color: #6c757d;
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .product-image-preview-modal .modal-body {
+        padding: 1.25rem;
+    }
+    .product-image-preview-frame {
+        display: flex;
+        min-height: 280px;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+    }
+    .product-image-preview-details {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+        margin: 1rem 0 0;
+    }
+    .product-image-preview-detail {
+        min-width: 0;
+        padding: .75rem;
+        background: #f8f9fa;
+        border-left: 3px solid #198754;
+    }
+    .product-image-preview-detail dt {
+        margin-bottom: .2rem;
+        color: #6c757d;
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .product-image-preview-detail dd {
+        margin: 0;
+        overflow: hidden;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    @media (max-width: 575.98px) {
+        .product-image-preview-details {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -77,7 +156,9 @@
                 <tr>
                     <td style="width:60px;">
                         {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="max-height:50px;max-width:50px;object-fit:cover;">
+                            <button type="button" class="product-image-preview-trigger" data-bs-toggle="modal" data-bs-target="#productImagePreviewModal" data-image-url="{{ product.image.url }}" data-product-name="{{ product.name }}" data-product-category="{{ product.category|default:'-' }}" data-product-brand="{{ product.brand|default:'-' }}" data-product-format="{{ product.formato|default:'-' }}" data-product-finish="{{ product.acabado|default:'-' }}" aria-label="Ver imagen de {{ product.name }}">
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="max-height:50px;max-width:50px;object-fit:cover;">
+                            </button>
                         {% else %}
                             <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="height:50px;width:50px;"><i class="fas fa-image text-muted"></i></div>
                         {% endif %}
@@ -166,4 +247,61 @@
     </ul>
 </nav>
 {% endif %}
+
+<div class="modal fade product-image-preview-modal" id="productImagePreviewModal" tabindex="-1" aria-labelledby="productImagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="product-image-preview-kicker">Ficha del producto</div>
+                    <h2 class="modal-title fs-5 mb-0" id="productImagePreviewModalLabel">Imagen del producto</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="product-image-preview-frame">
+                    <img id="productImagePreview" class="product-image-preview" src="" alt="">
+                </div>
+                <dl class="product-image-preview-details text-start">
+                    <div class="product-image-preview-detail">
+                        <dt><i class="fas fa-layer-group me-1"></i>Categoria</dt>
+                        <dd id="productImagePreviewCategory"></dd>
+                    </div>
+                    <div class="product-image-preview-detail">
+                        <dt><i class="fas fa-copyright me-1"></i>Marca</dt>
+                        <dd id="productImagePreviewBrand"></dd>
+                    </div>
+                    <div class="product-image-preview-detail">
+                        <dt><i class="fas fa-up-right-and-down-left-from-center me-1"></i>Formato</dt>
+                        <dd id="productImagePreviewFormat"></dd>
+                    </div>
+                    <div class="product-image-preview-detail">
+                        <dt><i class="fas fa-wand-magic-sparkles me-1"></i>Acabado</dt>
+                        <dd id="productImagePreviewFinish"></dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const productImagePreviewModal = document.getElementById('productImagePreviewModal');
+    productImagePreviewModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const image = document.getElementById('productImagePreview');
+        const title = document.getElementById('productImagePreviewModalLabel');
+        const productName = trigger.dataset.productName;
+
+        image.src = trigger.dataset.imageUrl;
+        image.alt = productName;
+        title.textContent = productName;
+        document.getElementById('productImagePreviewCategory').textContent = trigger.dataset.productCategory;
+        document.getElementById('productImagePreviewBrand').textContent = trigger.dataset.productBrand;
+        document.getElementById('productImagePreviewFormat').textContent = trigger.dataset.productFormat;
+        document.getElementById('productImagePreviewFinish').textContent = trigger.dataset.productFinish;
+    });
+</script>
 {% endblock %}

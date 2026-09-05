@@ -13,4 +13,6 @@ def render_to_pdf(template_path, context, filename="documento.pdf", base_url=Non
     pdf_bytes = HTML(string=html_string, base_url=base_url).write_pdf()
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["Cache-Control"] = "no-store, max-age=0"
+    response["Pragma"] = "no-cache"
     return response

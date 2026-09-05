@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.db import OperationalError, transaction
 from decimal import Decimal
+from pathlib import Path
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -400,14 +401,35 @@ class SalePDFBaseView(SalesAccessMixin, View):
 
 	def get_context(self, request, sale):
 		details = list(sale.saledetail_set.select_related("product").all())
+		for detail in details:
+			detail.product_image_url = self.get_file_url(request, detail.product.image)
+		company = Company.get_solo()
+		company_logo_url = self.get_file_url(request, company.logo) if company else ""
 		return {
 			"sale": sale,
 			"details": details,
 			"total_discount": sum((detail.discount or Decimal("0.00")) for detail in details),
-			"company": Company.get_solo(),
+			"company": company,
+			"company_logo_url": company_logo_url,
 			"now": timezone.localtime(),
-			"current_user_name": request.user.get_full_name() or request.user.username,
+			"seller_name": self.get_user_name(sale.seller),
+			"delivered_by_name": self.get_user_name(sale.delivered_by),
 		}
+
+	@staticmethod
+	def get_user_name(user):
+		if not user:
+			return "-"
+		return user.get_full_name().strip() or user.username or "-"
+
+	@staticmethod
+	def get_file_url(request, field_file):
+		if not field_file:
+			return ""
+		try:
+			return Path(field_file.path).resolve().as_uri()
+		except (NotImplementedError, OSError, ValueError):
+			return request.build_absolute_uri(field_file.url)
 
 	def get_filename(self, sale):
 		year = timezone.localtime().year
