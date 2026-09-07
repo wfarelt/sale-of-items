@@ -168,8 +168,7 @@
             <div class="label">NIT/CI</div><strong>{{ sale.client.nit_ci|default:"-" }}</strong>
         </div>
         <div>
-            <div class="label">Vendedor</div><strong>{{
-                seller_name }}</strong>
+            <div class="label">Vendedor</div><strong>{% if sale.seller %}{{ sale.seller.get_full_name|default:sale.seller.username }}{% else %}-{% endif %}</strong>
         </div>
     </div>
     <table>
